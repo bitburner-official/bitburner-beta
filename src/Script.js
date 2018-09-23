@@ -325,7 +325,7 @@ function saveAndCloseScriptEditor() {
         try {
             parseFconfSettings(code);
         } catch(e) {
-            dialogBoxCreate("Invalid .fconf file");
+            dialogBoxCreate(`Invalid .fconf file: ${e}`);
             return;
         }
     } else if (isScriptFilename(filename)) {
@@ -371,12 +371,13 @@ function checkValidFilename(filename) {
 	return false;
 }
 
-function Script() {
-	this.filename 	= "";
-    this.code       = "";
+function Script(fn = "", code = "", server = "") {
+	this.filename 	= fn;
+    this.code       = code;
     this.ramUsage   = 0;
-	this.server 	= "";	//IP of server this script is on
+	this.server 	= server; //IP of server this script is on
     this.module     = "";
+    if (this.code !== "") {this.updateRamUsage();}
 };
 
 //Get the script data from the Script Editor and save it to the object
@@ -530,10 +531,12 @@ function parseOnlyRamCalculate(server, code, workerScript) {
                     }
                 }
 
-                //Special logic for Bladeburner
+                //Special logic for namespaces (Bladeburner, CodingCOntract)
                 var func;
                 if (ref in workerScript.env.vars.bladeburner) {
                     func = workerScript.env.vars.bladeburner[ref];
+                } else if (ref in workerScript.env.vars.codingcontract) {
+                    func = workerScript.env.vars.codingcontract[ref];
                 } else {
                     func = workerScript.env.get(ref);
                 }

@@ -1,9 +1,11 @@
 import {substituteAliases, printAliases,
         parseAliasDeclaration,
         removeAlias, GlobalAliases,
-        Aliases}                            from "./Alias";
-import {CONSTANTS}                          from "./Constants";
-import {Programs}                           from "./CreateProgram";
+        Aliases}                                from "./Alias";
+import {CodingContract, CodingContractResult,
+        CodingContractRewardType}               from "./CodingContracts";
+import {CONSTANTS}                              from "./Constants";
+import {Programs}                               from "./CreateProgram";
 import {executeDarkwebTerminalCommand,
         checkIfConnectedToDarkweb,
         DarkWebItems}                       from "./DarkWeb";
@@ -62,7 +64,7 @@ $(document).keydown(function(event) {
 	//Terminal
 	if (routing.isOn(Page.Terminal)) {
         var terminalInput = document.getElementById("terminal-input-text-box");
-        if (terminalInput != null && !event.ctrlKey && !event.shiftKey) {terminalInput.focus();}
+        if (terminalInput != null && !event.ctrlKey && !event.shiftKey && !Terminal.contractOpen) {terminalInput.focus();}
 
 		if (event.keyCode === KEY.ENTER) {
             event.preventDefault(); //Prevent newline from being entered in Script Editor
@@ -251,7 +253,7 @@ $(document).keydown(function(e) {
 			terminalCtrlPressed = true;
 		} else if (e.shiftKey) {
             shiftKeyPressed = true;
-        } else if (terminalCtrlPressed || shiftKeyPressed) {
+        } else if (terminalCtrlPressed || shiftKeyPressed || Terminal.contractOpen) {
 			//Don't focus
 		} else {
             var inputTextBox = document.getElementById("terminal-input-text-box");
@@ -456,34 +458,41 @@ function determineAllPossibilitiesForTabCompletion(input, index=0) {
     }
 
     if (input.startsWith("rm ")) {
-        for (var i = 0; i < currServ.scripts.length; ++i) {
+        for (let i = 0; i < currServ.scripts.length; ++i) {
             allPos.push(currServ.scripts[i].filename);
         }
-        for (var i = 0; i < currServ.programs.length; ++i) {
+        for (let i = 0; i < currServ.programs.length; ++i) {
             allPos.push(currServ.programs[i]);
         }
-        for (var i = 0; i < currServ.messages.length; ++i) {
+        for (let i = 0; i < currServ.messages.length; ++i) {
             if (!(currServ.messages[i] instanceof Message) && isString(currServ.messages[i]) &&
                   currServ.messages[i].endsWith(".lit")) {
                 allPos.push(currServ.messages[i]);
             }
         }
-        for (var i = 0; i < currServ.textFiles.length; ++i) {
+        for (let i = 0; i < currServ.textFiles.length; ++i) {
             allPos.push(currServ.textFiles[i].fn);
+        }
+        for (let i = 0; i < currServ.contracts.length; ++i) {
+            allPos.push(currServ.contracts[i].fn);
         }
         return allPos;
     }
 
     if (input.startsWith("run ")) {
-        //All programs and scripts
-        for (var i = 0; i < currServ.scripts.length; ++i) {
+        //All programs, scripts, and contracts
+        for (let i = 0; i < currServ.scripts.length; ++i) {
             allPos.push(currServ.scripts[i].filename);
         }
 
         //Programs are on home computer
         var homeComputer = Player.getHomeComputer();
-        for(var i = 0; i < homeComputer.programs.length; ++i) {
+        for (let i = 0; i < homeComputer.programs.length; ++i) {
             allPos.push(homeComputer.programs[i]);
+        }
+
+        for (let i = 0; i < currServ.contracts.length; ++i) {
+            allPos.push(currServ.contracts[i].fn);
         }
         return allPos;
     }
@@ -522,6 +531,8 @@ let Terminal = {
 
     commandHistory: [],
     commandHistoryIndex: 0,
+
+    contractOpen:       false, //True if a Coding Contract prompt is opened
 
     resetTerminalInput: function() {
         if (FconfSettings.WRAP_INPUT) {
@@ -728,9 +739,9 @@ let Terminal = {
             post("Root Access: " + rootAccess);
 			post("Required hacking skill: " + currServ.requiredHackingSkill);
 			post("Server security level: " + numeralWrapper.format(currServ.hackDifficulty, '0.000a'));
-			post("Chance to hack: " + numeralWrapper.format(calculateHackingChance(currServ) * 100, '0.00%'));
+			post("Chance to hack: " + numeralWrapper.format(calculateHackingChance(currServ), '0.00%'));
 			post("Time to hack: " + numeralWrapper.format(calculateHackingTime(currServ), '0.000') + " seconds");
-			post("Total money available on server: $" + numeralWrapper.format(currServ.moneyAvailable, '$0,0.00'));
+			post("Total money available on server: " + numeralWrapper.format(currServ.moneyAvailable, '$0,0.00'));
 			post("Required number of open ports for NUKE: " + currServ.numOpenPortsRequired);
 
             if (currServ.sshPortOpen) {
@@ -1337,6 +1348,13 @@ let Terminal = {
                             return;
                         }
                     }
+                } else if (delTarget.endsWith(".cct")) {
+                    for (var i = 0; i < s.contracts.length; ++i) {
+                        if (s.contracts[i].fn === delTarget) {
+                            s.contracts.splice(i, 1);
+                            return;
+                        }
+                    }
                 }
                 post("Error: No such file exists");
 				break;
@@ -1354,9 +1372,11 @@ let Terminal = {
                     }
 
 					//Check if its a script or just a program/executable
-					//if (isScriptFilename(executableName)) {
+					//Dont use isScriptFilename here because `executableName` includes the args too
                     if (executableName.includes(".script") || executableName.includes(".js") || executableName.includes(".ns")) {
 						Terminal.runScript(executableName);
+                    } else if (executableName.endsWith(".cct")) {
+                        Terminal.runContract(executableName);
 					} else {
                         Terminal.runProgram(executableName);
 					}
@@ -1543,6 +1563,7 @@ let Terminal = {
                         document.body.style.setProperty('--my-highlight-color',"#ffffff");
                         document.body.style.setProperty('--my-font-color',"#66ff33");
                         document.body.style.setProperty('--my-background-color',"#000000");
+                        document.body.style.setProperty('--my-prompt-color', "#f92672");
                     } else if (themeName == "muted"){
                         document.body.style.setProperty('--my-highlight-color',"#ffffff");
                         document.body.style.setProperty('--my-font-color',"#66ff33");
@@ -1554,9 +1575,10 @@ let Terminal = {
                     } else {
                         return post("Theme not found");
                     }
-                    Settings.ThemeHighlightColor = document.body.style.getPropertyValue("--my-highlight-color");
-                    Settings.ThemeFontColor = document.body.style.getPropertyValue("--my-font-color");
-                    Settings.ThemeBackgroundColor = document.body.style.getPropertyValue("--my-background-color");
+                    FconfSettings.THEME_HIGHLIGHT_COLOR = document.body.style.getPropertyValue("--my-highlight-color");
+                    FconfSettings.THEME_FONT_COLOR = document.body.style.getPropertyValue("--my-font-color");
+                    FconfSettings.THEME_BACKGROUND_COLOR = document.body.style.getPropertyValue("--my-background-color");
+                    FconfSettings.THEME_PROMPT_COLOR = document.body.style.getPropertyValue("--my-prompt-color");
                 } else {
                     var inputBackgroundHex = args[0];
                     var inputTextHex = args[1];
@@ -1567,9 +1589,9 @@ let Terminal = {
                         document.body.style.setProperty('--my-highlight-color',inputHighlightHex);
                         document.body.style.setProperty('--my-font-color',inputTextHex);
                         document.body.style.setProperty('--my-background-color',inputBackgroundHex);
-                        Settings.ThemeHighlightColor = document.body.style.getPropertyValue("--my-highlight-color");
-                        Settings.ThemeFontColor = document.body.style.getPropertyValue("--my-font-color");
-                        Settings.ThemeBackgroundColor = document.body.style.getPropertyValue("--my-background-color");
+                        FconfSettings.THEME_HIGHLIGHT_COLOR = document.body.style.getPropertyValue("--my-highlight-color");
+                        FconfSettings.THEME_FONT_COLOR = document.body.style.getPropertyValue("--my-font-color");
+                        FconfSettings.THEME_BACKGROUND_COLOR = document.body.style.getPropertyValue("--my-background-color");
                     } else {
                         return post("Invalid Hex Input for theme");
                     }
@@ -1740,6 +1762,15 @@ let Terminal = {
                 }
             } else {
                 allFiles.push(s.textFiles[i].fn);
+            }
+        }
+        for (var i = 0; i < s.contracts.length; ++i) {
+            if (filter) {
+                if (s.contracts[i].fn.includes(filter)) {
+                    allFiles.push(s.contracts[i].fn);
+                }
+            } else {
+                allFiles.push(s.contracts[i].fn);
             }
         }
 
@@ -1967,9 +1998,9 @@ let Terminal = {
             post("Server base security level: " + targetServer.baseDifficulty);
             post("Server current security level: " + targetServer.hackDifficulty);
             post("Server growth rate: " + targetServer.serverGrowth);
-            post("Netscript hack() execution time: " + numeralWrapper.format(scriptCalculateHackingTime(targetServer), '0.0') + "s");
-            post("Netscript grow() execution time: " + numeralWrapper.format(scriptCalculateGrowTime(targetServer), '0.0') + "s");
-            post("Netscript weaken() execution time: " + numeralWrapper.format(scriptCalculateWeakenTime(targetServer), '0.0') + "s");
+            post("Netscript hack() execution time: " + numeralWrapper.format(calculateHackingTime(targetServer), '0.0') + "s");
+            post("Netscript grow() execution time: " + numeralWrapper.format(calculateGrowTime(targetServer), '0.0') + "s");
+            post("Netscript weaken() execution time: " + numeralWrapper.format(calculateWeakenTime(targetServer), '0.0') + "s");
         };
         programHandlers[Programs.AutoLink.name] = () => {
             post("This executable cannot be run.");
@@ -2130,7 +2161,46 @@ let Terminal = {
 
 
 		post("ERROR: No such script");
-	}
+	},
+
+    runContract: async function(contractName) {
+        // There's already an opened contract
+        if (Terminal.contractOpen) {
+            return post("ERROR: There's already a Coding Contract in Progress");
+        }
+
+        const serv = Player.getCurrentServer();
+        const contract = serv.getContract(contractName);
+        if (contract == null) {
+            return post("ERROR: No such contract");
+        }
+
+        Terminal.contractOpen = true;
+        const res = await contract.prompt();
+
+        switch (res) {
+            case CodingContractResult.Success:
+                var reward = Player.gainCodingContractReward(contract.reward, contract.getDifficulty());
+                post(`Contract SUCCESS - ${reward}`);
+                serv.removeContract(contract);
+                break;
+            case CodingContractResult.Failure:
+                ++contract.tries;
+                if (contract.tries >= contract.getMaxNumTries()) {
+                    post("Contract <p style='color:red;display:inline'>FAILED</p> - Contract is now self-destructing");
+                    serv.removeContract(contract);
+                } else {
+                    post(`Contract <p style='color:red;display:inline'>FAILED</p> - ${contract.getMaxNumTries() - contract.tries} tries remaining`);
+                }
+                break;
+            case CodingContractResult.Cancelled:
+            default:
+                post("Contract cancelled");
+                break;
+        }
+        Terminal.contractOpen = false;
+        console.log(Terminal.contractOpen);
+    },
 };
 
 export {postNetburnerText, Terminal};
