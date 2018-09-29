@@ -421,7 +421,7 @@ function NetscriptFunctions(workerScript) {
             }
             return netscriptDelay(growTime * 1000, workerScript).then(function() {
                 if (workerScript.env.stopFlag) {return Promise.reject(workerScript);}
-                const moneyBefore = server.moneyAvailable;
+                const moneyBefore = server.moneyAvailable <= 0 ? 1 : server.moneyAvailable;
                 server.moneyAvailable += (1 * threads); //It can be grown even if it has no money
                 var growthPercentage = processSingleServerGrowth(server, 450 * threads);
                 const moneyAfter = server.moneyAvailable;
@@ -2259,6 +2259,37 @@ function NetscriptFunctions(workerScript) {
                     resolve(false);
                 });
                 yesNoBoxCreate(txt);
+            });
+        },
+        wget : async function(url, target, ip=workerScript.serverIp) {
+            if (workerScript.checkingRam) { return 0; }
+            if (!isScriptFilename(target) && !target.endsWith(".txt")) {
+                workerSript.log(`ERROR: wget() failed because of an invalid target file: ${target}. Target file must be a script or text file`);
+                return Promise.resolve(false);
+            }
+            var s = safeGetServer(ip, "wget");
+            return new Promise(function(resolve, reject) {
+                $.get(url, function(data) {
+                    let res;
+                    if (isScriptFilename(target)) {
+                        res = s.writeToScriptFile(target, data);
+                    } else {
+                        res = s.writeToTextFile(target, data);
+                    }
+                    if (!res.success) {
+                        workerScript.log("ERROR: wget() failed");
+                        return resolve(false);
+                    }
+                    if (res.overwritten) {
+                         workerScript.log(`wget() successfully retrieved content and overwrote ${target} on ${ip}`);
+                         return resolve(true);
+                    }
+                    workerScript.log(`wget successfully retrieved content to new file ${target} on ${ip}`);
+                    return resolve(true);
+                }, 'text').fail(function(e) {
+                    workerScript.log(`ERROR: wget() failed: ${JSON.stringify(e)}`);
+                    return resolve(false)
+                });
             });
         },
         getFavorToDonate: function() {
