@@ -1394,6 +1394,16 @@ function NetscriptFunctions(workerScript) {
             }
             return (findRunningScript(filename, argsForTargetScript, server) != null);
         },
+        getStockSymbols : function(){
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getStockSymbols", CONSTANTS.ScriptGetStockRamCost);
+            }
+            updateDynamicRam("getStockSymbols", CONSTANTS.ScriptGetStockRamCost);
+            if (!Player.hasTixApiAccess) {
+                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getStockSymbols()");
+            }
+            return Object.values(StockSymbols);
+        },
         getStockPrice : function(symbol) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("getStockPrice", CONSTANTS.ScriptGetStockRamCost);
