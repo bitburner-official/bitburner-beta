@@ -253,7 +253,6 @@ let CONSTANTS = {
     ClassLeadershipBaseCost: 320,
     ClassGymBaseCost: 120,
 
-    CrimeSingFnDivider: 2, //Factor by which exp/profit is reduced when commiting crime through Sing Fn
     CrimeShoplift: "shoplift",
     CrimeRobStore: "rob a store",
     CrimeMug: "mug someone",
@@ -509,7 +508,7 @@ let CONSTANTS = {
      *** Added a Gang Netscript API
      *** Added new 'ascension' mechanic for Gang Members
      *** The first three gang members are now 'free' (can be recruited instantly)
-     *** Maximum number of increased Gang Members increased from 20 to 40
+     *** Maximum number of increased Gang Members increased from 20 to 30
      *** Changed the formula for calculating respect needed to recruit the next gang member
      *** Added a new category of upgrades for Gang Members: Augmentations
      *** Non-Augmentation Gang member upgrades are now significantly weaker
@@ -522,6 +521,7 @@ let CONSTANTS = {
      * RAM Cost of accessing the global document object lowered from 100 GB to 25 GB
      * RAM Cost to use Singularity Functions outside of BitNode-4 lowered by 75%. They now only cost twice as much as they do in BitNode-4
      * b1t_flum3.exe now takes significantly less time to create
+     * Crimes commited through Singularity function no longer give half money/exp
      * Improved number formatting for Player 'work' actions (including crimes, etc.). These numbers should also adhere to locale settings now (by Kline-)
      * Bug Fix: Calling print() in NetscriptJS no longer brings up the print dialog
      * Bug Fix: Fixed a bug that sometimes caused a blank black screen when destroying/resetting/switching BitNodes
