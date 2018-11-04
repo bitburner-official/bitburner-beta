@@ -35,10 +35,9 @@ import {Server, getServer, AddToAllServers,
 import {Settings}                                   from "./Settings";
 import {SpecialServerIps}                           from "./SpecialServerIps";
 import {Stock}                                      from "./Stock";
-import {StockMarket, StockSymbols, SymbolToStockMap, initStockSymbols,
-        initStockMarket, initSymbolToStockMap, stockMarketCycle, buyStock,
-        sellStock, updateStockPrices, displayStockMarketContent,
-        updateStockTicker, updateStockPlayerPosition,
+import {StockMarket, StockSymbols, SymbolToStockMap,
+        initStockMarket, initSymbolToStockMap, buyStock,
+        sellStock, updateStockPlayerPosition,
         shortStock, sellShort, OrderTypes,
         PositionTypes, placeOrder, cancelOrder}     from "./StockMarket";
 import {post}                                       from "./ui/postToTerminal";
@@ -107,8 +106,16 @@ var possibleLogs = {
     getServerGrowth: true,
     getServerNumPortsRequired: true,
     getServerRam: true,
+
+    // TIX API
     buyStock: true,
     sellStock: true,
+    shortStock: true,
+    sellShort: true,
+    purchase4SMarketData: true,
+    purchase4SMarketDataTixApi: true,
+
+    // Singularity Functions
     purchaseServer: true,
     deleteServer: true,
     universityCourse: true,
@@ -125,12 +132,18 @@ var possibleLogs = {
     donateToFaction: true,
     createProgram: true,
     commitCrime: true,
-    shortStock: true,
-    sellShort: true,
+
+    // Bladeburner API
     startAction: true,
     upgradeSkill: true,
     setTeamSize: true,
     joinBladeburnerFaction: true,
+
+    // Gang API
+    recruitMember: true,
+    setMemberTask: true,
+    purchaseEquipment: true,
+    setTerritoryWarfare: true,
 }
 
 //Used to check and set flags for every Source File, despite the name of the function
@@ -156,7 +169,14 @@ function NetscriptFunctions(workerScript) {
     var updateDynamicRam = function(fnName, ramCost) {
         if (workerScript.dynamicLoadedFns[fnName]) {return;}
         workerScript.dynamicLoadedFns[fnName] = true;
-        workerScript.dynamicRamUsage += ramCost;
+
+        const threads = workerScript.scriptRef.threads;
+        if (typeof threads !== 'number') {
+            console.warn(`WorkerScript detected NaN for threadcount for ${workerScript.name} on ${workerScript.serverIp}`);
+            threads = 1;
+        }
+
+        workerScript.dynamicRamUsage += (ramCost * threads);
         if (workerScript.dynamicRamUsage > 1.01 * workerScript.ramUsage) {
             throw makeRuntimeRejectMsg(workerScript,
                                        "Dynamic RAM usage calculated to be greater than initial RAM usage on fn: " + fnName +
@@ -528,8 +548,30 @@ function NetscriptFunctions(workerScript) {
             }
             return workerScript.disableLogs[fn] ? false : true;
         },
-        getScriptLogs : function() {
+        getScriptLogs : function(fn, ip) {
             if (workerScript.checkingRam) {return 0;}
+
+            if (fn != null && typeof fn === 'string') {
+                // Get Logs of another script
+                if (ip == null) { ip = workerScript.serverIp; }
+                const server = getServer(ip);
+                if (server == null) {
+                    workerScript.log(`getScriptLogs() failed. Invalid IP or hostname passed in: ${ip}`);
+                    throw makeRuntimeRejectMsg(workerScript, `getScriptLogs() failed. Invalid IP or hostname passed in: ${ip}`);
+                }
+
+                let argsForTarget = [];
+                for (let i = 2; i < arguments.length; ++i) {
+                    argsForTarget.push(arguments[i]);
+                }
+                const runningScriptObj = findRunningScript(fn, argsForTarget, server);
+                if (runningScriptObj == null) {
+                    workerScript.scriptRef.log(`getScriptLogs() failed. No such script ${fn} on ${server.hostname} with args: ${arrayToString(argsForTarget)}`);
+                    return "";
+                }
+                return runningScriptObj.logs.slice();
+            }
+
             return workerScript.scriptRef.logs.slice();
         },
         nuke : function(ip){
@@ -783,7 +825,7 @@ function NetscriptFunctions(workerScript) {
             }
             NetscriptFunctions(workerScript).exit();
         },
-        kill : function(filename,ip) {
+        kill : function(filename, ip) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("kill", CONSTANTS.ScriptKillRamCost);
             }
@@ -1679,6 +1721,68 @@ function NetscriptFunctions(workerScript) {
             stock.b ? forecast += stock.otlkMag : forecast -= stock.otlkMag;
             return forecast / 100; //Convert from percentage to decimal
         },
+        purchase4SMarketData : function() {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("purchase4SMarketData", CONSTANTS.ScriptBuySellStockRamCost);
+            }
+            updateDynamicRam("purchase4SMarketData", CONSTANTS.ScriptBuySellStockRamCost);
+
+            if (!Player.hasTixApiAccess) {
+                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use purchase4SMarketData()");
+            }
+
+            if (Player.has4SData) {
+                if (workerScript.shouldLog("purchase4SMarketData")) {
+                    workerScript.log("Already purchased 4S Market Data");
+                }
+                return true;
+            }
+
+            if (Player.money.lt(CONSTANTS.MarketData4SCost)) {
+                if (workerScript.shouldLog("purchase4SMarketData")) {
+                    workerScript.log("Failed to purchase 4S Market Data - Not enough money");
+                }
+                return false;
+            }
+
+            Player.has4SData = true;
+            Player.loseMoney(CONSTANTS.MarketData4SCost);
+            if (workerScript.shouldLog("purchase4SMarketData")) {
+                workerScript.log("Purchased 4S Market Data");
+            }
+            return true;
+        },
+        purchase4SMarketDataTixApi : function() {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("purchase4SMarketDataTixApi", CONSTANTS.ScriptBuySellStockRamCost);
+            }
+            updateDynamicRam("purchase4SMarketDataTixApi", CONSTANTS.ScriptBuySellStockRamCost);
+
+            if (!Player.hasTixApiAccess) {
+                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use purchase4SMarketDataTixApi()");
+            }
+
+            if (Player.has4SDataTixApi) {
+                if (workerScript.shouldLog("purchase4SMarketDataTixApi")) {
+                    workerScript.log("Already purchased 4S Market Data TIX API");
+                }
+                return true;
+            }
+
+            if (Player.money.lt(CONSTANTS.MarketDataTixApi4SCost)) {
+                if (workerScript.shouldLog("purchase4SMarketDataTixApi")) {
+                    workerScript.log("Failed to purchase 4S Market Data TIX API - Not enough money");
+                }
+                return false;
+            }
+
+            Player.has4SDataTixApi = true;
+            Player.loseMoney(CONSTANTS.MarketDataTixApi4SCost);
+            if (workerScript.shouldLog("purchase4SMarketDataTixApi")) {
+                workerScript.log("Purchased 4S Market Data TIX API");
+            }
+            return true;
+        },
         getPurchasedServerLimit : function() {
             if (workerScript.checkingRam) {
                 return updateStaticRam("getPurchasedServerLimit", CONSTANTS.ScriptGetPurchasedServerLimit);
@@ -1706,7 +1810,7 @@ function NetscriptFunctions(workerScript) {
                 cost = getPurchaseServerRamCostGuard(ram);
             } catch (e) {
                 workerScript.scriptRef.log("ERROR: 'getPurchasedServerCost()' " + e.message);
-                return "";
+                return Infinity;
             }
 
             return cost;
@@ -2680,12 +2784,29 @@ function NetscriptFunctions(workerScript) {
             }
             return {
                 bitnode:            Player.bitNodeN,
-                company:            Player.companyName,
-                jobTitle:           companyPositionTitle,
                 city:               Player.city,
+                company:            Player.companyName,
                 factions:           Player.factions.slice(),
-                tor:                SpecialServerIps.hasOwnProperty("Darkweb Server"),
+                jobTitle:           companyPositionTitle,
+                mult: {
+                    agility:        Player.agility_mult,
+                    agilityExp:     Player.agility_exp_mult,
+                    companyRep:     Player.company_rep_mult,
+                    crimeMoney:     Player.crime_money_mult,
+                    crimeSuccess:   Player.crime_success_mult,
+                    defense:        Player.defense_mult,
+                    defenseExp:     Player.defense_exp_mult,
+                    dexterity:      Player.dexterity_mult,
+                    dexterityExp:   Player.dexterity_exp_mult,
+                    factionRep:     Player.faction_rep_mult,
+                    hacking:        Player.hacking_mult,
+                    hackingExp:     Player.hacking_exp_mult,
+                    strength:       Player.strength_mult,
+                    strengthExp:    Player.strength_exp_mult,
+                    workMoney:      Player.work_money_mult,
+                },
                 timeWorked:         Player.timeWorked,
+                tor:                SpecialServerIps.hasOwnProperty("Darkweb Server"),
                 workHackExpGain:    Player.workHackExpGained,
                 workStrExpGain:     Player.workStrExpGained,
                 workDefExpGain:     Player.workDefExpGained,
@@ -3623,7 +3744,7 @@ function NetscriptFunctions(workerScript) {
                                 strength:               member.str,
                                 strengthEquipMult:      member.str_mult,
                                 strengthAscensionMult:  member.str_asc_mult,
-                                task:                   member.task.name,
+                                task:                   member.task,
                             }
                         }
                     }
@@ -3655,7 +3776,16 @@ function NetscriptFunctions(workerScript) {
                 nsGang.checkGangApiAccess(workerScript, "recruitMember");
 
                 try {
-                    return Player.gang.recruitMember(name);
+                    const res = Player.gang.recruitMember(name);
+                    if (workerScript.shouldLog("recruitMember")) {
+                        if (res) {
+                            workerScript.log(`Successfully recruited Gang Member ${name}`);
+                        } else {
+                            workerScript.log(`Failed to recruit Gang Member ${name}`);
+                        }
+                    }
+
+                    return res;
                 } catch(e) {
                     throw makeRuntimeRejectMsg(workerScript, nsGang.unknownGangApiExceptionMessage("recruitMember", e));
                 }
@@ -3685,7 +3815,16 @@ function NetscriptFunctions(workerScript) {
                 try {
                     for (const member of Player.gang.members) {
                         if (member.name === memberName) {
-                            return member.assignToTask(taskName);
+                            const res = member.assignToTask(taskName);
+                            if (workerScript.shouldLog("setMemberTask")) {
+                                if (res) {
+                                    workerScript.log(`Successfully assigned Gang Member ${memberName} to ${taskName} task`);
+                                } else {
+                                    workerScript.log(`Failed to assign Gang Member ${memberName} to ${taskName} task. ${memberName} is now Unassigned`);
+                                }
+                            }
+
+                            return res;
                         }
                     }
 
@@ -3731,7 +3870,16 @@ function NetscriptFunctions(workerScript) {
                 try {
                     for (const member in Player.gang.members) {
                         if (member.name === memberName) {
-                            return member.buyUpgrade(equipName, Player, Player.gang);
+                            const res = member.buyUpgrade(equipName, Player, Player.gang);
+                            if (workerScript.shouldLog("purchaseEquipment")) {
+                                if (res) {
+                                    workerScript.log(`Purchased ${equipName} for Gang member ${memberName}`);
+                                } else {
+                                    workerScript.log(`Failed to purchase ${equipName} for Gang member ${memberName}`);
+                                }
+                            }
+
+                            return res;
                         }
                     }
 
@@ -3771,8 +3919,14 @@ function NetscriptFunctions(workerScript) {
                 try {
                     if (engage) {
                         Player.gang.territoryWarfareEngaged = true;
+                        if (workerScript.shouldLog("setTerritoryWarfare")) {
+                            workerScript.log("Engaging in Gang Territory Warfare");
+                        }
                     } else {
                         Player.gang.territoryWarfareEngaged = false;
+                        if (workerScript.shouldLog("setTerritoryWarfare")) {
+                            workerScript.log("Disengaging in Gang Territory Warfare");
+                        }
                     }
                 } catch(e) {
                     throw makeRuntimeRejectMsg(workerScript, nsGang.unknownGangApiExceptionMessage("setTerritoryWarfare", e));
