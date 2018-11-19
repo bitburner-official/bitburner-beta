@@ -1,5 +1,7 @@
-let CONSTANTS = {
-    Version:                "0.41.0",
+import {IMap} from "./types";
+
+export let CONSTANTS: IMap<any> = {
+    Version:                "0.41.2",
 
 	//Max level for any skill, assuming no multipliers. Determined by max numerical value in javascript for experience
     //and the skill level formula in Player.js. Note that all this means it that when experience hits MAX_INT, then
@@ -502,31 +504,20 @@ let CONSTANTS = {
 
     LatestUpdate:
     `
-     v0.41.1
+     v0.41.2
      * IMPORTANT - Netscript Changes:
-     ** purchaseTor() now returns true if you already have a TOR router (it used to return false)
-     ** getPurchasedServerCost() now returns Infinity if the specified RAM is an invalid amount or is greater than the max amount of RAM (2 ^ 20 GB)
-     ** Added purchase4SMarketData() and purchase4SMarketDataTixApi() functions
-     ** getScriptLogs() now takes in optional arguments that let you get the logs of another script
+     ** rm() now takes an optional parameter that lets you specify on which server to delete the file
 
-     * Stock Market changes:
-     ** Stocks now have "maximum prices"
-     ** If a stock reaches its "maximum price", it will most likely drop in value (although it might still rise)
-     ** Each stock has its own, unique maximum price
-     ** Maximum price for each stock are randomly generated and change during each 'reset'
-     ** Stock Market cycles are now accumulated/stored, much like it is for Gangs and Bladeburners
-     ** Accumulated/stored cycles cause stock prices to update up to 50% faster (from every 6 seconds to 4 seconds)
-     *** This means that after coming back from being offline, stock prices will update faster to make up for offline time
+     * Gang Changes:
+     ** UI now displays your chance to win a clash with other gangs
+     ** Added getChanceToWinClash() function to the Gang API
 
-     * Decreased the Hacking Level multiplier for BitNodes 6 and 7 to 0.4 (from 0.5)
-     * Bladeburner console history is now saved and persists when switching screens or closing/reopening the game
-     * In Bladeburner, if your stamina reaches 0 your current action will be cancelled
-     * b1t_flum3.exe is no longer removed from your home computer upon reset
-     * Added main menu link for the Stock Market (once you've purchased an account)
-     * Job main menu link only appears if you actually have a job
-     * Bug Fix: After installing Augs, the "Portfolio Mode" button on the Stock Market page should be properly reset
+     * Added the terminal command 'expr', which can be used to evaluate simple mathematical expressions
+     * Bug Fix: scp() should no longer throw errors when used with 2-arguments and an array of files
+     * Bug Fix: Coding Contracts no longer give money in BitNode-8
+     * Bug Fix: In Bladeburner, you can no longer start a BlackOp through the Netscript API if it has already been completed
+     * Bug Fix: In Bladeburner, fixed a bug which caused the configured 'automate' actions to occasionally be switched to other actions
+     * Bug Fix: 'Return to World' button at locations no longer accumulates event listeners
      `
 
 }
-
-export {CONSTANTS};
