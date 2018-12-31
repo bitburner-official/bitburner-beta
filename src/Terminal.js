@@ -5,11 +5,11 @@ import {substituteAliases, printAliases,
 import {CodingContract, CodingContractResult,
         CodingContractRewardType}               from "./CodingContracts";
 import {CONSTANTS}                              from "./Constants";
-import {Programs}                               from "./CreateProgram";
-import {executeDarkwebTerminalCommand,
-        checkIfConnectedToDarkweb,
-        DarkWebItems}                       from "./DarkWeb";
-import {Engine}                             from "./engine";
+import { Programs }                             from "./Programs/Programs";
+import { executeDarkwebTerminalCommand,
+         checkIfConnectedToDarkweb }            from "./DarkWeb/DarkWeb";
+import { DarkWebItems }                         from "./DarkWeb/DarkWebItems";
+import {Engine}                                 from "./engine";
 import {FconfSettings, parseFconfSettings,
         createFconf}                        from "./Fconf";
 import {calculateHackingChance,
@@ -2015,6 +2015,7 @@ let Terminal = {
             yesBtn.innerHTML = "Travel to BitNode Nexus";
             noBtn.innerHTML = "Cancel";
             yesBtn.addEventListener("click", function() {
+                console.log("yesBtn event listener");
                 hackWorldDaemon(Player.bitNodeN, true);
                 return yesNoBoxClose();
             });

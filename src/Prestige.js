@@ -5,10 +5,12 @@ import {initBitNodeMultipliers}                 from "./BitNode";
 import {Bladeburner}                            from "./Bladeburner";
 import {writeCinematicText}                     from "./CinematicText";
 import {Companies, initCompanies}               from "./Company/Companies";
-import {Programs}                               from "./CreateProgram";
+import { Programs }                             from "./Programs/Programs";
 import {Engine}                                 from "./engine";
-import {Factions, Faction, initFactions,
-        joinFaction}                            from "./Faction";
+import { Faction }                              from "./Faction/Faction";
+import { Factions,
+         initFactions }                         from "./Faction/Factions";
+import { joinFaction }                          from "./Faction/FactionHelpers";
 import {deleteGangDisplayContent}               from "./Gang";
 import {Locations}                              from "./Location";
 import {initMessages, Messages, Message}        from "./Message";
@@ -34,8 +36,6 @@ import {removeElementById}                      from "../utils/uiHelpers/removeE
 import {createElement}                          from "../utils/uiHelpers/createElement";
 import {createPopup}                            from "../utils/uiHelpers/createPopup";
 import {exceptionAlert}                         from "../utils/helpers/exceptionAlert";
-import {yesNoBoxCreate, yesNoBoxGetYesButton,
-        yesNoBoxGetNoButton, yesNoBoxClose}     from "../utils/YesNoBox";
 
 let BitNode8StartingMoney = 250e6;
 

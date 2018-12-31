@@ -3,7 +3,7 @@ import {CompanyPositions}                       from "./Company/CompanyPositions
 import {Companies}                              from "./Company/Companies";
 import {getJobRequirementText}                  from "./Company/GetJobRequirementText";
 import * as posNames                            from "./Company/data/CompanyPositionNames";
-import {Corporation}                            from "./CompanyManagement";
+import { Corporation }                          from "./Corporation/Corporation";
 import {CONSTANTS}                              from "./Constants";
 import {Crimes}                                 from "./Crimes";
 import {Engine}                                 from "./engine";
@@ -30,7 +30,7 @@ import {yesNoBoxCreate, yesNoTxtInpBoxCreate,
         yesNoTxtInpBoxClose}                    from "../utils/YesNoBox";
 
 function displayLocationContent() {
-    var returnToWorld           = document.getElementById("location-return-to-world-button");
+    var returnToWorld           = clearEventListeners("location-return-to-world-button");
 
     var locationName            = document.getElementById("location-name");
 
@@ -113,7 +113,7 @@ function displayLocationContent() {
 
     var cityHallCreateCorporation   = document.getElementById("location-cityhall-create-corporation");
 
-    var nsaBladeburner = clearEventListeners("location-nsa-bladeburner");
+    var nsaBladeburner = document.getElementById("location-nsa-bladeburner");
 
     var loc = Player.location;
 

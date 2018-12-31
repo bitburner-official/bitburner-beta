@@ -2,10 +2,13 @@ import {loadAliases, loadGlobalAliases,
         Aliases, GlobalAliases}                 from "./Alias";
 import {Companies, loadCompanies}               from "./Company/Companies";
 import {CompanyPosition}                        from "./Company/CompanyPosition";
+import { IndustryResearchTrees,
+         loadIndustryResearchTrees }            from "./Corporation/IndustryData";
 import {CONSTANTS}                              from "./Constants";
 import {Engine}                                 from "./engine";
-import {loadFactions, Factions,
-        processPassiveFactionRepGain}           from "./Faction";
+import { Factions,
+         loadFactions }                         from "./Faction/Factions";
+import { processPassiveFactionRepGain }         from "./Faction/FactionHelpers";
 import {FconfSettings, loadFconf}               from "./Fconf";
 import {loadAllGangs, AllGangs}                 from "./Gang";
 import {processAllHacknetNodeEarnings}          from "./HacknetNode";
@@ -35,22 +38,23 @@ import Decimal                                  from "decimal.js";
 let saveObject = new BitburnerSaveObject();
 
 function BitburnerSaveObject() {
-    this.PlayerSave                 = "";
-    this.AllServersSave             = "";
-    this.CompaniesSave              = "";
-    this.FactionsSave               = "";
-    this.SpecialServerIpsSave       = "";
-    this.AliasesSave                = "";
-    this.GlobalAliasesSave          = "";
-    this.MessagesSave               = "";
-    this.StockMarketSave            = "";
-    this.SettingsSave               = "";
-    this.FconfSettingsSave          = "";
-    this.VersionSave                = "";
-    this.AllGangsSave               = "";
+    this.PlayerSave                     = "";
+    this.AllServersSave                 = "";
+    this.CompaniesSave                  = "";
+    this.FactionsSave                   = "";
+    this.SpecialServerIpsSave           = "";
+    this.AliasesSave                    = "";
+    this.GlobalAliasesSave              = "";
+    this.MessagesSave                   = "";
+    this.StockMarketSave                = "";
+    this.SettingsSave                   = "";
+    this.FconfSettingsSave              = "";
+    this.VersionSave                    = "";
+    this.AllGangsSave                   = "";
+    this.CorporationResearchTreesSave   = "";
 }
 
-BitburnerSaveObject.prototype.saveGame = function(db) {
+BitburnerSaveObject.prototype.getSaveString = function() {
     this.PlayerSave                 = JSON.stringify(Player);
 
     //Delete all logs from all running scripts
@@ -80,6 +84,12 @@ BitburnerSaveObject.prototype.saveGame = function(db) {
         this.AllGangsSave           = JSON.stringify(AllGangs);
     }
     var saveString = btoa(unescape(encodeURIComponent(JSON.stringify(this))));
+
+    return saveString;
+}
+
+BitburnerSaveObject.prototype.saveGame = function(db) {
+    var saveString = this.getSaveString();
 
     //We'll save to both localstorage and indexedDb
     var objectStore = db.transaction(["savestring"], "readwrite").objectStore("savestring");
@@ -259,6 +269,7 @@ function loadImportedGame(saveObj, saveString) {
     var tempMessages = null;
     var tempStockMarket = null;
     var tempAllGangs = null;
+    let tempCorporationResearchTrees = null;
 
     //Check to see if the imported save file can be parsed. If any
     //errors are caught it will fail
@@ -331,7 +342,8 @@ function loadImportedGame(saveObj, saveString) {
             try {
                 loadAllGangs(tempSaveObj.AllGangsSave);
             } catch(e) {
-                console.log("ERROR: Failed to parse AllGangsSave: " + e);
+                console.error(`Failed to parse AllGangsSave: {e}`);
+                throw e;
             }
         }
     } catch(e) {

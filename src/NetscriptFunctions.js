@@ -13,8 +13,7 @@ import {Companies, companyExists}                   from "./Company/Companies";
 import {CompanyPosition}                            from "./Company/CompanyPosition";
 import {CompanyPositions}                           from "./Company/CompanyPositions";
 import {CONSTANTS}                                  from "./Constants";
-import {Programs}                                   from "./CreateProgram";
-import {DarkWebItems}                               from "./DarkWeb";
+import { DarkWebItems }                             from "./DarkWeb/DarkWebItems";
 import {calculateHackingChance,
         calculateHackingExpGain,
         calculatePercentMoneyHacked,
@@ -22,13 +21,18 @@ import {calculateHackingChance,
         calculateGrowTime,
         calculateWeakenTime}                        from "./Hacking";
 import {AllGangs}                                   from "./Gang";
-import {Factions, Faction, joinFaction,
-        factionExists, purchaseAugmentation}        from "./Faction";
-import {getCostOfNextHacknetNode, purchaseHacknet}  from "./HacknetNode";
+import { Faction }                                  from "./Faction/Faction";
+import { Factions,
+         factionExists }                            from "./Faction/Factions";
+import { joinFaction,
+         purchaseAugmentation }                     from "./Faction/FactionHelpers";
+import { getCostOfNextHacknetNode,
+         purchaseHacknet }                          from "./HacknetNode";
 import {Locations}                                  from "./Locations";
 import {Message, Messages}                          from "./Message";
 import {inMission}                                  from "./Missions";
 import {Player}                                     from "./Player";
+import { Programs }                                 from "./Programs/Programs";
 import {Script, findRunningScript, RunningScript,
         isScriptFilename}                           from "./Script";
 import {Server, getServer, AddToAllServers,
@@ -1708,6 +1712,40 @@ function NetscriptFunctions(workerScript) {
                 pos: orderPos
             };
             return cancelOrder(params, workerScript);
+        },
+        getOrders : function() {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getOrders", CONSTANTS.ScriptBuySellStockRamCost);
+            }
+            updateDynamicRam("getOrders", CONSTANTS.ScriptBuySellStockRamCost);
+            if (!Player.hasTixApiAccess) {
+                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getOrders()");
+            }
+            if (Player.bitNodeN !== 8) {
+                if (!(hasWallStreetSF && wallStreetSFLvl >= 3)) {
+                    throw makeRuntimeRejectMsg(workerScript, "ERROR: Cannot use getOrders(). You must either be in BitNode-8 or have Level 3 of Source-File 8");
+                }
+            }
+
+            const orders = {};
+
+            const stockMarketOrders = StockMarket["Orders"];
+            for (let symbol in stockMarketOrders) {
+                const orderBook = stockMarketOrders[symbol];
+                if (orderBook.constructor === Array && orderBook.length > 0) {
+                    orders[symbol] = [];
+                    for (let i = 0; i < orderBook.length; ++i) {
+                        orders[symbol].push({
+                            shares: orderBook[i].shares,
+                            price: orderBook[i].price,
+                            type: orderBook[i].type,
+                            position: orderBook[i].pos,
+                        });
+                    }
+                }
+            }
+
+            return orders;
         },
         getStockVolatility : function(symbol) {
             if (workerScript.checkingRam) {

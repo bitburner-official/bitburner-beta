@@ -53,6 +53,7 @@ interface ICreateElementStyleOptions {
     margin?: string;
     marginLeft?: string;
     marginTop?: string;
+    overflow?: string;
     padding?: string;
     position?: string;
     visibility?: string;
@@ -67,6 +68,7 @@ interface ICreateElementTooltipOptions {
     tooltip?: string;
     tooltipleft?: string;
     tooltipsmall?: string;
+    tooltiplow?: string;
 }
 
 /**
@@ -202,6 +204,9 @@ function setElementStyle(el: HTMLElement, params: ICreateElementStyleOptions) {
     if (params.position !== undefined) {
         el.style.position = params.position;
     }
+    if (params.overflow !== undefined) {
+        el.style.overflow = params.overflow;
+    }
 }
 
 function setElementTooltip(el: HTMLElement, params: ICreateElementTooltipOptions) {
@@ -222,7 +227,13 @@ function setElementTooltip(el: HTMLElement, params: ICreateElementTooltipOptions
         el.appendChild(createElement("span", {
             class: "tooltiptext smallfont",
             innerHTML: params.tooltipsmall,
-        }))
+        }));
+    } else if (params.tooltiplow !== undefined) {
+        el.className += "tooltip";
+        el.appendChild(createElement("span", {
+            class: "tooltiptextlow",
+            innerHTML: params.tooltiplow,
+        }));
     }
 }
 

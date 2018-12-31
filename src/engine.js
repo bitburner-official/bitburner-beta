@@ -1,13 +1,15 @@
-import {dialogBoxCreate}                                from "../utils/DialogBox";
-import {gameOptionsBoxOpen, gameOptionsBoxClose}        from "../utils/GameOptions";
+import { dialogBoxCreate}                                from "../utils/DialogBox";
+import { gameOptionsBoxClose,
+         gameOptionsBoxOpen}                            from "../utils/GameOptions";
 import { getRandomInt }                                 from "../utils/helpers/getRandomInt";
-import {removeChildrenFromElement}                      from "../utils/uiHelpers/removeChildrenFromElement";
-import {clearEventListeners}                            from "../utils/uiHelpers/clearEventListeners";
-import {createElement}                                  from "../utils/uiHelpers/createElement";
-import {exceptionAlert}                                 from "../utils/helpers/exceptionAlert";
-import {removeLoadingScreen}                            from "../utils/uiHelpers/removeLoadingScreen";
+import { removeChildrenFromElement }                    from "../utils/uiHelpers/removeChildrenFromElement";
+import { clearEventListeners }                          from "../utils/uiHelpers/clearEventListeners";
+import { createElement }                                from "../utils/uiHelpers/createElement";
+import { exceptionAlert }                               from "../utils/helpers/exceptionAlert";
+import { removeLoadingScreen }                          from "../utils/uiHelpers/removeLoadingScreen";
 
 import {numeralWrapper}                                 from "./ui/numeralFormat";
+import { createStatusText }                             from "./ui/createStatusText";
 
 import {formatNumber,
         convertTimeMsToTimeElapsedString,
@@ -27,16 +29,15 @@ import {cinematicTextFlag}                              from "./CinematicText";
 import {generateRandomContract}                         from "./CodingContractGenerator";
 import {CompanyPositions}                               from "./Company/CompanyPositions";
 import {initCompanies}                                  from "./Company/Companies";
-import {Corporation}                                    from "./CompanyManagement";
+import { Corporation }                                  from "./Corporation/Corporation";
 import {CONSTANTS}                                      from "./Constants";
-import {displayCreateProgramContent,
-        getNumAvailableCreateProgram,
-        initCreateProgramButtons,
-        Programs}                                       from "./CreateProgram";
+
+
 import {createDevMenu, closeDevMenu}                    from "./DevMenu";
-import {displayFactionContent, joinFaction,
-        processPassiveFactionRepGain, Factions,
-        inviteToFaction, initFactions}                  from "./Faction";
+import { Factions, initFactions }                       from "./Faction/Factions";
+import { displayFactionContent, joinFaction,
+         processPassiveFactionRepGain,
+         inviteToFaction }                              from "./Faction/FactionHelpers";
 import {FconfSettings}                                  from "./Fconf";
 import {displayLocationContent,
         initLocationButtons}                            from "./Location";
@@ -54,6 +55,10 @@ import {updateOnlineScriptTimes,
 import {Player}                                         from "./Player";
 import {prestigeAugmentation,
         prestigeSourceFile}                             from "./Prestige";
+import { Programs }                                     from "./Programs/Programs";
+import { displayCreateProgramContent,
+         getNumAvailableCreateProgram,
+         initCreateProgramButtons }                     from "./Programs/ProgramHelpers";
 import {redPillFlag, hackWorldDaemon}                   from "./RedPill";
 import {saveObject, loadGame}                           from "./SaveObject";
 import {loadAllRunningScripts, scriptEditorInit,
@@ -77,6 +82,7 @@ import {Page, routing}                                  from "./ui/navigationTra
 // cascade order, we'll pull them all in here.
 import 'normalize.css';
 import "../css/styles.scss";
+import "../css/tooltips.scss";
 import "../css/buttons.scss";
 import "../css/mainmenu.scss";
 import "../css/characteroverview.scss";
@@ -84,12 +90,15 @@ import "../css/terminal.scss";
 import "../css/menupages.scss";
 import "../css/workinprogress.scss";
 import "../css/popupboxes.scss";
+import "../css/gameoptions.scss";
 import "../css/interactivetutorial.scss";
 import "../css/loader.scss";
 import "../css/missions.scss";
 import "../css/companymanagement.scss";
 import "../css/bladeburner.scss";
 import "../css/gang.scss";
+import "../css/treant.css";
+
 
 /* Shortcuts to navigate through the game
  *  Alt-t - Terminal
@@ -518,6 +527,8 @@ const Engine = {
         document.getElementById("augmentations-menu-link").classList.remove("active");
         document.getElementById("hacknet-nodes-menu-link").classList.remove("active");
         document.getElementById("city-menu-link").classList.remove("active");
+        document.getElementById("travel-menu-link").classList.remove("active");
+        document.getElementById("stock-market-menu-link").classList.remove("active");
         document.getElementById("tutorial-menu-link").classList.remove("active");
         document.getElementById("options-menu-link").classList.remove("active");
         document.getElementById("dev-menu-link").classList.remove("active");
@@ -1257,12 +1268,17 @@ const Engine = {
                 processStockPrices(numCyclesOffline);
             }
 
-            //Gang progress for BitNode 2
+            // Gang progress for BitNode 2
             if (Player.bitNodeN != null && Player.bitNodeN === 2 && Player.inGang()) {
                 Player.gang.process(numCyclesOffline, Player);
             }
 
-            //Bladeburner offline progress
+            // Corporation offline progress
+            if (Player.corporation instanceof Corporation) {
+                Player.corporation.storeCycles(numCyclesOffline);
+            }
+
+            // Bladeburner offline progress
             if (Player.bladeburner instanceof Bladeburner) {
                 Player.bladeburner.storeCycles(numCyclesOffline);
             }
@@ -1651,6 +1667,7 @@ const Engine = {
         Engine.Clickables.travelMainMenuButton = clearEventListeners("travel-menu-link");
         Engine.Clickables.travelMainMenuButton.addEventListener("click", function() {
             Engine.loadTravelContent();
+            Engine.Clickables.travelMainMenuButton.classList.add("active");
             return false;
         });
 
@@ -1663,6 +1680,7 @@ const Engine = {
         Engine.Clickables.stockmarketMainMenuButton = clearEventListeners("stock-market-menu-link");
         Engine.Clickables.stockmarketMainMenuButton.addEventListener("click", function() {
             Engine.loadStockMarketContent();
+            Engine.Clickables.stockmarketMainMenuButton.classList.add("active");
             return false;
         });
 
@@ -1699,6 +1717,7 @@ const Engine = {
         Engine.Clickables.corporationMenuButton = clearEventListeners("corporation-menu-link");
         Engine.Clickables.corporationMenuButton.addEventListener("click", function() {
             Engine.loadCorporationContent();
+            Engine.Clickables.corporationMenuButton.classList.add("active");
             return false;
         });
         Engine.Clickables.gangMenuButton = clearEventListeners("gang-menu-link");
@@ -1787,6 +1806,43 @@ const Engine = {
         document.getElementById("hacknet-nodes-menu-link").removeAttribute("class");
         document.getElementById("city-menu-link").removeAttribute("class");
         document.getElementById("tutorial-menu-link").removeAttribute("class");
+
+        // Copy Save Data to Clipboard
+        document.getElementById("copy-save-to-clipboard-link").addEventListener("click", function() {
+            const saveString = saveObject.getSaveString();
+            if (!navigator.clipboard) {
+                // Async Clipboard API not supported, so we'll use this using the
+                // textarea and document.execCommand('copy') trick
+                const textArea = document.createElement("textarea");
+                textArea.value = saveString;
+                textArea.setAttribute("readonly", '');
+                textArea.style.position = 'absolute';
+                textArea.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    const successful = document.execCommand("copy");
+                    if (successful) {
+                        createStatusText("Copied save to clipboard");
+                    } else {
+                        createStatusText("Failed to copy save");
+                    }
+                } catch(e) {
+                    console.error("Unable to copy save data to clipboard using document.execCommand('copy')");
+                    createStatusText("Failed to copy save");
+                }
+                document.body.removeChild(textArea);
+            } else {
+                // Use the Async Clipboard API
+                navigator.clipboard.writeText(saveString).then(function() {
+                    createStatusText("Copied save to clipboard");
+                }, function(e) {
+                    console.error("Unable to copy save data to clipboard using Async API");
+                    createStatusText("Failed to copy save");
+                })
+            }
+        });
 
         //DEBUG Delete active Scripts on home
         document.getElementById("debug-delete-scripts-link").addEventListener("click", function() {

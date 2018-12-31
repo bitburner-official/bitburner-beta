@@ -1,4 +1,4 @@
-import {joinFaction}                from "../src/Faction";
+import {joinFaction}                from "../src/Faction/FactionHelpers";
 import {Engine}                     from "../src/engine";
 import {Player}                     from "../src/Player";
 import {clearEventListeners}        from "./uiHelpers/clearEventListeners";
@@ -40,7 +40,7 @@ function factionInvitationBoxCreate(faction) {
         //Remove from invited factions
         var i = Player.factionInvitations.findIndex((facName)=>{return facName === faction.name});
         if (i === -1) {
-            console.log("ERROR: Could not find faction in Player.factionInvitations");
+            console.error("Could not find faction in Player.factionInvitations");
         } else {
             Player.factionInvitations.splice(i, 1);
         }

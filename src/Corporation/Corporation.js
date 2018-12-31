@@ -1,581 +1,93 @@
-import {BitNodeMultipliers}                             from "./BitNodeMultipliers";
-import {Factions}                                       from "./Faction";
-import {showLiterature}                                 from "./Literature";
-import {Locations}                                      from "./Locations";
-import {Player}                                         from "./Player";
+import { AllCorporationStates,
+         CorporationState }                             from "./CorporationState";
+import { CorporationUnlockUpgrades }                    from "./data/CorporationUnlockUpgrades";
+import { CorporationUpgrades }                          from "./data/CorporationUpgrades";
+import { EmployeePositions }                            from "./EmployeePositions";
+import { Industries,
+         IndustryStartingCosts,
+         IndustryDescriptions,
+         IndustryResearchTrees }                        from "./IndustryData";
+import { IndustryUpgrades }                             from "./IndustryUpgrades";
+import { Material }                                     from "./Material";
+import { MaterialSizes }                                from "./MaterialSizes";
+import { Product }                                      from "./Product";
+import { ResearchMap }                                  from "./ResearchMap";
+
+import { BitNodeMultipliers }                           from "../BitNodeMultipliers";
+import { CONSTANTS }                                    from "../Constants";
+import { Factions }                                     from "../Faction/Factions";
+import { showLiterature }                               from "../Literature";
+import { Locations }                                    from "../Locations";
+import { Player }                                       from "../Player";
+
+import { numeralWrapper }                               from "../ui/numeralFormat";
+import { Page, routing }                                from "../ui/navigationTracking";
+
+import { dialogBoxCreate }                              from "../../utils/DialogBox";
+import { clearSelector }                                from "../../utils/uiHelpers/clearSelector";
+import { Reviver,
+         Generic_toJSON,
+         Generic_fromJSON }                             from "../../utils/JSONReviver";
+import { appendLineBreaks }                             from "../../utils/uiHelpers/appendLineBreaks";
+import { createElement }                                from "../../utils/uiHelpers/createElement";
+import { createPopup }                                  from "../../utils/uiHelpers/createPopup";
+import { createPopupCloseButton }                       from "../../utils/uiHelpers/createPopupCloseButton";
+import { formatNumber, generateRandomString }           from "../../utils/StringHelperFunctions";
+import { getRandomInt }                                 from "../../utils/helpers/getRandomInt";
+import { isString }                                     from "../../utils/helpers/isString";
+import { removeChildrenFromElement }                    from "../../utils/uiHelpers/removeChildrenFromElement";
+import { removeElement }                                from "../../utils/uiHelpers/removeElement";
+import { removeElementById }                            from "../../utils/uiHelpers/removeElementById";
+import { yesNoBoxCreate,
+         yesNoTxtInpBoxCreate,
+         yesNoBoxGetYesButton,
+         yesNoBoxGetNoButton,
+         yesNoTxtInpBoxGetYesButton,
+         yesNoTxtInpBoxGetNoButton,
+         yesNoTxtInpBoxGetInput,
+         yesNoBoxClose,
+         yesNoTxtInpBoxClose,
+         yesNoBoxOpen }                                 from "../../utils/YesNoBox";
 
 import Decimal                                          from "decimal.js";
-import {numeralWrapper}                                 from "./ui/numeralFormat";
-
-import {dialogBoxCreate}                                from "../utils/DialogBox";
-import {clearSelector}                                  from "../utils/uiHelpers/clearSelector";
-import {Reviver, Generic_toJSON,
-        Generic_fromJSON}                               from "../utils/JSONReviver";
-import {createElement}                                  from "../utils/uiHelpers/createElement";
-import {createPopup}                                    from "../utils/uiHelpers/createPopup";
-import {Page, routing}                                  from "./ui/navigationTracking";
-import {formatNumber, generateRandomString}             from "../utils/StringHelperFunctions";
-import {getRandomInt}                                   from "../utils/helpers/getRandomInt";
-import {isString}                                       from "../utils/helpers/isString";
-import {removeChildrenFromElement}                      from "../utils/uiHelpers/removeChildrenFromElement";
-import {removeElementById}                              from "../utils/uiHelpers/removeElementById";
-import {yesNoBoxCreate, yesNoTxtInpBoxCreate,
-        yesNoBoxGetYesButton, yesNoBoxGetNoButton,
-        yesNoTxtInpBoxGetYesButton, yesNoTxtInpBoxGetNoButton,
-        yesNoTxtInpBoxGetInput, yesNoBoxClose,
-        yesNoTxtInpBoxClose, yesNoBoxOpen}              from "../utils/YesNoBox";
-
-/* State */
-var companyStates = ["START", "PURCHASE", "PRODUCTION", "SALE", "EXPORT"];
-function CorporationState() {
-    this.state = 0;
-}
-
-CorporationState.prototype.nextState = function() {
-    if (this.state < 0 || this.state >= companyStates.length) {
-        this.state = 0;
-    }
-
-    ++this.state;
-    if (this.state >= companyStates.length) {
-        this.state = 0;
-    }
-}
-
-CorporationState.prototype.getState = function() {
-    return companyStates[this.state];
-}
-
-CorporationState.prototype.toJSON = function() {
-	return Generic_toJSON("CorporationState", this);
-}
-
-CorporationState.fromJSON = function(value) {
-	return Generic_fromJSON(CorporationState, value.data);
-}
-
-Reviver.constructors.CorporationState = CorporationState;
 
 /* Constants */
-var TOTALSHARES = 1e9; //Total number of shares you have at your company
-var CyclesPerMarketCycle    = 75;
-var CyclesPerIndustryStateCycle = CyclesPerMarketCycle / companyStates.length;
-var SecsPerMarketCycle      = CyclesPerMarketCycle / 5;
-var Cities = ["Aevum", "Chongqing", "Sector-12", "New Tokyo", "Ishima", "Volhaven"];
-var WarehouseInitialCost        = 5e9; //Initial purchase cost of warehouse
-var WarehouseInitialSize        = 100;
-var WarehouseUpgradeBaseCost    = 1e9;
+export const TOTALSHARES                    = 1e9; //Total number of shares you have at your company
+export const CyclesPerMarketCycle           = 75;
+export const CyclesPerIndustryStateCycle    = CyclesPerMarketCycle / AllCorporationStates.length;
+export const SecsPerMarketCycle             = CyclesPerMarketCycle / 5;
+export const Cities = ["Aevum", "Chongqing", "Sector-12", "New Tokyo", "Ishima", "Volhaven"];
+export const WarehouseInitialCost           = 5e9; //Initial purchase cost of warehouse
+export const WarehouseInitialSize           = 100;
+export const WarehouseUpgradeBaseCost       = 1e9;
 
-var OfficeInitialCost           = 4e9;
-var OfficeInitialSize           = 3;
-var OfficeUpgradeBaseCost       = 1e9;
+export const OfficeInitialCost              = 4e9;
+export const OfficeInitialSize              = 3;
+export const OfficeUpgradeBaseCost          = 1e9;
 
-var BribeThreshold              = 100e12; //Money needed to be able to bribe for faction rep
-var BribeToRepRatio             = 1e9;   //Bribe Value divided by this = rep gain
+export const BribeThreshold                 = 100e12; //Money needed to be able to bribe for faction rep
+export const BribeToRepRatio                = 1e9;   //Bribe Value divided by this = rep gain
 
-var ProductProductionCostRatio  = 5;    //Ratio of material cost of a product to its production cost
+export const ProductProductionCostRatio     = 5;    //Ratio of material cost of a product to its production cost
 
-function Material(params={}) {
-    this.name = params.name ? params.name : "";
-    this.qty    = 0; //Quantity
-    this.qlt    = 0; //Quality, unbounded
-    this.dmd    = 0; //Demand, 0-100?
-    this.dmdR   = 0; //Range of possible demand
-    this.cmp    = 0; //Competition, 0-100
-    this.cmpR   = 0; //Range of possible competition
-    this.mv     = 0; //Maximum Volatility of stats
+export const DividendMaxPercentage          = 50;
 
-    //Markup. Determines how high of a price you can charge on the material
-    //compared to the market price (bCost) based on quality
-    //Quality is divided by this to determine markup limits
-    //e.g if mku is 10 and quality is 100 then you can mark up prices by 100/10 = 10
-    //without consequences
-    this.mku    = 0;
+export const CyclesPerEmployeeRaise         = 400;  // All employees get a raise every X market cycles
+export const EmployeeRaiseAmount            = 50;   // Employee salary increases by this (additive)
 
-    this.buy = 0; //How much of this material is being bought per second
-    this.sll = 0; //How much of this material is being sold per second
-    this.prd = 0; //How much of this material is being produced per second
-    this.exp = []; //Exports of this material to another warehouse/industry
-    this.totalExp = 0; //Total export amount for last cycle
-    this.imp = 0;
-    this.bCost = 0; //$ Cost/sec to buy material
-    this.sCost = 0; //$ Cost/sec to sell material
-
-    //[Whether production/sale is limited, limit amount]
-    this.prdman = [false, 0]; //Production for this material is manually limited
-    this.sllman = [false, 0]; //Sale of this material is manually limited
-    this.init();
-}
-
-Material.prototype.init = function(mats={}) {
-    switch(this.name) {
-        case "Water":
-            this.dmd = 75; this.dmdR = [65, 85];
-            this.cmp = 50; this.cmpR = [40, 60];
-            this.bCost = 1000; this.mv = 0.2;
-            this.mku = 6;
-            break;
-        case "Energy":
-            this.dmd = 90; this.dmdR = [80, 100];
-            this.cmp = 80; this.cmpR = [65, 95];
-            this.bCost = 1500; this.mv = 0.2;
-            this.mku = 6;
-            break;
-        case "Food":
-            this.dmd = 80; this.dmdR = [70, 90];
-            this.cmp = 60; this.cmpR = [35, 85];
-            this.bCost = 5000; this.mv = 1;
-            this.mku = 3;
-            break;
-        case "Plants":
-            this.dmd = 70; this.dmdR = [20, 90];
-            this.cmp = 50; this.cmpR = [30, 70];
-            this.bCost = 3000; this.mv = 0.6;
-            this.mku = 3.75;
-            break;
-        case "Metal":
-            this.dmd = 80; this.dmdR = [75, 85];
-            this.cmp = 70; this.cmpR = [60, 80];
-            this.bCost = 2650; this.mv = 1;
-            this.mku = 6;
-            break;
-        case "Hardware":
-            this.dmd = 85; this.dmdR = [80, 90];
-            this.cmp = 80; this.cmpR = [65, 95];
-            this.bCost = 4000; this.mv = 0.5; //Less mv bc its processed twice
-            this.mku = 1;
-            break;
-        case "Chemicals":
-            this.dmd = 55; this.dmdR = [40, 70];
-            this.cmp = 60; this.cmpR = [40, 80];
-            this.bCost = 6750; this.mv = 1.2;
-            this.mku = 2;
-            break;
-        case "Real Estate":
-            this.dmd = 50; this.dmdR = [5, 100];
-            this.cmp = 50; this.cmpR = [25, 75];
-            this.bCost = 16e3; this.mv = 1.5; //Less mv bc its processed twice
-            this.mku = 1.5;
-            break;
-        case "Drugs":
-            this.dmd = 60; this.dmdR = [45, 75];
-            this.cmp = 70; this.cmpR = [40, 100];
-            this.bCost = 8e3; this.mv = 1.6;
-            this.mku = 1;
-            break;
-        case "Robots":
-            this.dmd = 90; this.dmdR = [80, 100];
-            this.cmp = 90; this.cmpR = [80, 100];
-            this.bCost = 20e3; this.mv = 0.5; //Less mv bc its processed twice
-            this.mku = 1;
-            break;
-        case "AI Cores":
-            this.dmd = 90; this.dmdR = [80, 100];
-            this.cmp = 90; this.cmpR = [80, 100];
-            this.bCost = 27e3; this.mv = 0.8; //Less mv bc its processed twice
-            this.mku = 0.5;
-            break;
-        case "Scientific Research":
-            break;
-        default:
-            console.log("Invalid material type in init(): " + this.name);
-            break;
-    }
-}
-
-//Process change in demand, competition, and buy cost of this material
-Material.prototype.processMarket = function() {
-    //This 1st random check determines whether competition increases or decreases
-    //More competition = lower market price
-    var v = (Math.random() * this.mv) / 100;
-    var pv = (Math.random() * this.mv) / 300;
-    if (Math.random() < 0.42) {
-        this.cmp *= (1+v);
-        if (this.cmp > this.cmpR[1]) {this.cmp = this.cmpR[1]};
-        this.bCost *= (1-pv);
-    } else {
-        this.cmp *= (1-v);
-        if (this.cmp < this.cmpR[0]) {this.cmp = this.cmpR[0];}
-        this.bCost *= (1+pv);
-    }
-
-    //This 2nd random check determines whether demand increases or decreases
-    //More demand = higher market price
-    v = (Math.random() * this.mv) / 100;
-    pv = (Math.random() * this.mv) / 300;
-    if (Math.random() < 0.45) {
-        this.dmd *= (1+v);
-        if (this.dmd > this.dmdR[1]) {this.dmd = this.dmdR[1];}
-        this.bCost *= (1+pv);
-    } else {
-        this.dmd *= (1-v);
-        if (this.dmd < this.dmdR[0]) {this.dmd = this.dmdR[0];}
-        this.bCost *= (1-pv);
-    }
-}
-
-Material.prototype.toJSON = function() {
-	return Generic_toJSON("Material", this);
-}
-
-Material.fromJSON = function(value) {
-	return Generic_fromJSON(Material, value.data);
-}
-
-Reviver.constructors.Material = Material;
-
-//Map of material (by name) to their sizes (how much space it takes in warehouse)
-let MaterialSizes = {
-    Water:      0.05,
-    Energy:     0.01,
-    Food:       0.03,
-    Plants:     0.05,
-    Metal:      0.1,
-    Hardware:   0.06,
-    Chemicals:  0.05,
-    Drugs:      0.02,
-    Robots:     0.5,
-    AICores:    0.1,
-    RealEstate: 0,
-}
-
-function Product(params={}) {
-    this.name = params.name         ? params.name           : 0;
-    this.dmd = params.demand        ? params.demand         : 0;
-    this.cmp = params.competition   ? params.competition    : 0;
-    this.mku = params.markup        ? params.markup         : 0;
-    this.pCost = 0; //An estimate of how much money it costs to make this
-    this.sCost = 0; //How much this is selling for
-
-    //Variables for creation of product
-    this.fin = false;       //Finished being created
-    this.prog = 0;          //0-100% created
-    this.createCity = params.createCity ? params.createCity : ""; // City in which the product is being created
-    this.designCost     = params.designCost ? params.designCost : 0;
-    this.advCost        = params.advCost ? params.advCost : 0;
-
-    //Aggregate score for a product's 'rating' based on the other properties below
-    //The weighting of the other properties (performance, durability)
-    //differs between industries
-    this.rat = 0;
-
-    this.qlt = params.quality       ? params.quality        : 0;
-    this.per = params.performance   ? params.performance    : 0;
-    this.dur = params.durability    ? params.durability     : 0;
-    this.rel = params.reliability   ? params.reliability    : 0;
-    this.aes = params.aesthetics    ? params.aesthetics     : 0;
-    this.fea = params.features      ? params.features       : 0;
-
-    //Data refers to the production, sale, and quantity of the products
-    //These values are specific to a city
-    //The data is [qty, prod, sell]
-    this.data = {
-        [Locations.Aevum]: [0, 0, 0],
-        [Locations.Chongqing]: [0, 0, 0],
-        [Locations.Sector12]: [0, 0, 0],
-        [Locations.NewTokyo]: [0, 0, 0],
-        [Locations.Ishima]: [0, 0, 0],
-        [Locations.Volhaven]: [0, 0, 0],
-    }
-
-    //Only applies for location-based products like restaurants/hospitals
-    this.loc = params.loc ? params.loc : 0;
-
-    //How much space it takes in the warehouse. Not applicable for all products
-    this.siz = params.size ? params.size : 0;
-
-    //Material requirements. An object that maps the name of a material to how much it requires
-    //to make 1 unit of the product.
-    this.reqMats = params.req           ? params.req            : {};
-
-    //[Whether production/sale is limited, limit amount]
-    this.prdman = {
-        [Locations.Aevum]: [false, 0],
-        [Locations.Chongqing]: [false, 0],
-        [Locations.Sector12]: [false, 0],
-        [Locations.NewTokyo]: [false, 0],
-        [Locations.Ishima]: [false, 0],
-        [Locations.Volhaven]: [false, 0],
-    }
-
-    this.sllman = {
-        [Locations.Aevum]: [false, 0],
-        [Locations.Chongqing]: [false, 0],
-        [Locations.Sector12]: [false, 0],
-        [Locations.NewTokyo]: [false, 0],
-        [Locations.Ishima]: [false, 0],
-        [Locations.Volhaven]: [false, 0],
-    }
-}
-
-//empWorkMult is a multiplier that increases progress rate based on
-//productivity of employees
-Product.prototype.createProduct = function(marketCycles=1, empWorkMult=1) {
-    if (this.fin) {return;}
-    this.prog += (marketCycles * .01 * empWorkMult);
-}
-
-//'industry' is a reference to the industry that makes the product
-Product.prototype.finishProduct = function(employeeProd, industry) {
-    this.fin = true;
-
-    //Calculate properties
-    var progrMult = this.prog / 100;
-
-    var engrRatio   = employeeProd[EmployeePositions.Engineer] / employeeProd["total"],
-        mgmtRatio   = employeeProd[EmployeePositions.Management] / employeeProd["total"],
-        rndRatio    = employeeProd[EmployeePositions.RandD] / employeeProd["total"],
-        opsRatio    = employeeProd[EmployeePositions.Operations] / employeeProd["total"],
-        busRatio    = employeeProd[EmployeePositions.Business] / employeeProd["total"];
-    var designMult = 1 + (Math.pow(this.designCost, 0.1) / 100);
-    console.log("designMult: " + designMult);
-    var balanceMult = (1.2 * engrRatio) + (0.9 * mgmtRatio) + (1.3 * rndRatio) +
-                      (1.5 * opsRatio) + (busRatio);
-    var sciMult = 1 + (Math.pow(industry.sciResearch.qty, industry.sciFac) / 800);
-    var totalMult = progrMult * balanceMult * designMult * sciMult;
-
-    this.qlt = totalMult * ((0.10 * employeeProd[EmployeePositions.Engineer]) +
-                            (0.05 * employeeProd[EmployeePositions.Management]) +
-                            (0.05 * employeeProd[EmployeePositions.RandD]) +
-                            (0.02 * employeeProd[EmployeePositions.Operations]) +
-                            (0.02 * employeeProd[EmployeePositions.Business]));
-    this.per = totalMult * ((0.15 * employeeProd[EmployeePositions.Engineer]) +
-                            (0.02 * employeeProd[EmployeePositions.Management]) +
-                            (0.02 * employeeProd[EmployeePositions.RandD]) +
-                            (0.02 * employeeProd[EmployeePositions.Operations]) +
-                            (0.02 * employeeProd[EmployeePositions.Business]));
-    this.dur = totalMult * ((0.05 * employeeProd[EmployeePositions.Engineer]) +
-                            (0.02 * employeeProd[EmployeePositions.Management]) +
-                            (0.08 * employeeProd[EmployeePositions.RandD]) +
-                            (0.05 * employeeProd[EmployeePositions.Operations]) +
-                            (0.05 * employeeProd[EmployeePositions.Business]));
-    this.rel = totalMult * ((0.02 * employeeProd[EmployeePositions.Engineer]) +
-                            (0.08 * employeeProd[EmployeePositions.Management]) +
-                            (0.02 * employeeProd[EmployeePositions.RandD]) +
-                            (0.05 * employeeProd[EmployeePositions.Operations]) +
-                            (0.08 * employeeProd[EmployeePositions.Business]));
-    this.aes = totalMult * ((0.00 * employeeProd[EmployeePositions.Engineer]) +
-                            (0.08 * employeeProd[EmployeePositions.Management]) +
-                            (0.05 * employeeProd[EmployeePositions.RandD]) +
-                            (0.02 * employeeProd[EmployeePositions.Operations]) +
-                            (0.10 * employeeProd[EmployeePositions.Business]));
-    this.fea = totalMult * ((0.08 * employeeProd[EmployeePositions.Engineer]) +
-                            (0.05 * employeeProd[EmployeePositions.Management]) +
-                            (0.02 * employeeProd[EmployeePositions.RandD]) +
-                            (0.05 * employeeProd[EmployeePositions.Operations]) +
-                            (0.05 * employeeProd[EmployeePositions.Business]));
-    this.calculateRating(industry);
-    var advMult = 1 + (Math.pow(this.advCost, 0.1) / 100);
-    this.mku = 100 / (advMult * Math.pow((this.qlt + 0.001), 0.65) * (busRatio + mgmtRatio));
-    this.dmd = industry.awareness === 0 ? 20 : Math.min(100, advMult * (100 * (industry.popularity / industry.awareness)));
-    this.cmp = getRandomInt(0, 70);
-
-    //Calculate the product's required materials
-    //For now, just set it to be the same as the requirements to make materials
-    for (var matName in industry.reqMats) {
-        if (industry.reqMats.hasOwnProperty(matName)) {
-            this.reqMats[matName] = industry.reqMats[matName];
+// Delete Research Popup Box when clicking outside of it
+$(document).mousedown(function(event) {
+    const boxId = "corporation-research-popup-box";
+    const contentId = "corporation-research-popup-box-content";
+    if (researchTreeBoxOpened) {
+        if ( $(event.target).closest("#" + contentId).get(0) == null ) {
+            // Delete the box
+            removeElement(researchTreeBox);
+            researchTreeBox = null;
+            researchTreeBoxOpened = false;
         }
     }
-
-    //Calculate the product's size
-    //For now, just set it to be the same size as the requirements to make materials
-    this.siz = 0;
-    for (var matName in industry.reqMats) {
-        this.siz += MaterialSizes[matName] * industry.reqMats[matName];
-    }
-
-    //Delete unneeded variables
-    delete this.prog;
-    delete this.createCity;
-    delete this.designCost;
-    delete this.advCost;
-}
-
-
-Product.prototype.calculateRating = function(industry) {
-    var weights = ProductRatingWeights[industry.type];
-    if (weights == null) {
-        console.log("ERROR: Could not find product rating weights for: " + industry);
-        return;
-    }
-    this.rat = 0;
-    this.rat += weights.Quality     ? this.qlt * weights.Quality : 0;
-    this.rat += weights.Performance ? this.per * weights.Performance : 0;
-    this.rat += weights.Durability  ? this.dur * weights.Durability : 0;
-    this.rat += weights.Reliability ? this.rel * weights.Reliability : 0;
-    this.rat += weights.Aesthetics  ? this.aes * weights.Aesthetics : 0;
-    this.rat += weights.Features    ? this.fea * weights.Features : 0;
-}
-
-Product.prototype.toJSON = function() {
-	return Generic_toJSON("Product", this);
-}
-
-Product.fromJSON = function(value) {
-	return Generic_fromJSON(Product, value.data);
-}
-
-Reviver.constructors.Product = Product;
-
-var Industries = {
-    Energy: "Energy",
-    Utilities: "Water Utilities",
-    Agriculture: "Agriculture",
-    Fishing: "Fishing",
-    Mining: "Mining",
-    Food: "Food",
-    Tobacco: "Tobacco",
-    Chemical: "Chemical",
-    Pharmaceutical: "Pharmaceutical",
-    Computer: "Computer Hardware",
-    Robotics: "Robotics",
-    Software: "Software",
-    Healthcare: "Healthcare",
-    RealEstate: "RealEstate",
-}
-
-var IndustryStartingCosts = {
-    Energy: 225e9,
-    Utilities: 150e9,
-    Agriculture: 40e9,
-    Fishing: 80e9,
-    Mining: 300e9,
-    Food: 10e9,
-    Tobacco: 20e9,
-    Chemical: 70e9,
-    Pharmaceutical: 200e9,
-    Computer: 500e9,
-    Robotics: 1e12,
-    Software: 25e9,
-    Healthcare: 750e9,
-    RealEstate: 600e9,
-}
-
-var IndustryDescriptions = {
-    Energy: "Engage in the production and distribution of energy.<br><br>" +
-            "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Energy, "$0.000a") + "<br>" +
-            "Recommended starting Industry: NO",
-    Utilities: "Distributes water and provides wastewater services.<br><br>" +
-               "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Utilities, "$0.000a") + "<br>" +
-               "Recommended starting Industry: NO",
-    Agriculture: "Cultive crops and breed livestock to produce food.<br><br>" +
-                 "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Agriculture, "$0.000a") + "<br>" +
-                 "Recommended starting Industry: YES",
-    Fishing: "Produce food through the breeding and processing of fish and fish products<br><br>" +
-             "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Fishing, "$0.000a") + "<br>" +
-             "Recommended starting Industry: NO",
-    Mining: "Extract and process metals from the earth.<br><br>" +
-            "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Mining, "$0.000a") + "<br>" +
-            "Recommended starting Industry: NO",
-    Food: "Create your own restaurants all around the world.<br><br>" +
-          "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Food, "$0.000a") + "<br>" +
-          "Recommended starting Industry: YES",
-    Tobacco: "Create and distribute tobacco and tobacco-related products.<br><br>" +
-             "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Tobacco, "$0.000a") + "<br>" +
-             "Recommended starting Industry: YES",
-    Chemical: "Product industrial chemicals<br><br>" +
-              "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Chemical, "$0.000a") + "<br>" +
-              "Recommended starting Industry: NO",
-    Pharmaceutical: "Discover, develop, and create new pharmaceutical drugs.<br><br>" +
-                    "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Pharmaceutical, "$0.000a") + "<br>" +
-                    "Recommended starting Industry: NO",
-    Computer: "Develop and manufacture new computer hardware and networking infrastructures.<br><br>" +
-              "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Computer, "$0.000a") + "<br>" +
-              "Recommended starting Industry: NO",
-    Robotics: "Develop and create robots.<br><br>" +
-              "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Robotics, "$0.000a") + "<br>" +
-              "Recommended starting Industry: NO",
-    Software: "Develop computer software and create AI Cores.<br><br>" +
-              "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Software, "$0.000a") + "<br>" +
-              "Recommended starting Industry: YES",
-    Healthcare: "Create and manage hospitals.<br><br>" +
-                "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.Healthcare, "$0.000a") + "<br>" +
-                "Recommended starting Industry: NO",
-    RealEstate: "Develop and manage real estate properties.<br><br>" +
-                "Starting cost: " + numeralWrapper.format(IndustryStartingCosts.RealEstate, "$0.000a") + "<br>" +
-                "Recommended starting Industry: NO",
-}
-
-var ProductRatingWeights = {
-    [Industries.Food]: {
-        Quality:        0.7,
-        Durability:     0.1,
-        Aesthetics:     0.2,
-    },
-    [Industries.Tobacco]: {
-        Quality:        0.4,
-        Durability:     0.2,
-        Reliability:    0.2,
-        Aesthetics:     0.2,
-    },
-    [Industries.Pharmaceutical]: {
-        Quality:        0.2,
-        Performance:    0.2,
-        Durability:     0.1,
-        Reliability:    0.3,
-        Features:       0.2,
-    },
-    [Industries.Computer]: {
-        Quality:        0.15,
-        Performance:    0.25,
-        Durability:     0.25,
-        Reliability:    0.2,
-        Aesthetics:     0.05,
-        Features:       0.1,
-    },
-    "Computer" : {  //Repeat
-        Quality:        0.15,
-        Performance:    0.25,
-        Durability:     0.25,
-        Reliability:    0.2,
-        Aesthetics:     0.05,
-        Features:       0.1,
-    },
-    [Industries.Robotics]: {
-        Quality:        0.1,
-        Performance:    0.2,
-        Durability:     0.2,
-        Reliability:    0.2,
-        Aesthetics:     0.1,
-        Features:       0.2,
-    },
-    [Industries.Software]: {
-        Quality:        0.2,
-        Performance:    0.2,
-        Reliability:    0.2,
-        Durability:     0.2,
-        Features:       0.2,
-    },
-    [Industries.Healthcare]: {
-        Quality:        0.4,
-        Performance:    0.1,
-        Durability:     0.1,
-        Reliability:    0.3,
-        Features:       0.1,
-    },
-    [Industries.RealEstate]: {
-        Quality:        0.2,
-        Durability:     0.25,
-        Reliability:    0.1,
-        Aesthetics:     0.35,
-        Features:       0.1,
-    }
-}
-
-//Industry upgrades
-//The structure is:
-//  [index in array, base price, price mult, benefit mult (if applicable), name, desc]
-var IndustryUpgrades = {
-    "0":    [0, 500e3, 1, 1.05,
-            "Coffee", "Provide your employees with coffee, increasing their energy by 5%."],
-    "1":    [1, 1e9, 1.06, 1.03,
-            "AdVert.Inc", "Hire AdVert.Inc to advertise your company. Each level of " +
-            "this upgrade grants your company a static increase of 3 and 1 to its awareness and " +
-            "popularity, respectively. It will then increase your company's awareness by 1%, and its popularity " +
-            "by a random percentage between 1% and 3%. These effects are increased by other upgrades " +
-            "that increase the power of your advertising."]
-}
+});
 
 var empManualAssignmentModeActive = false;
 function Industry(params={}) {
@@ -607,6 +119,7 @@ function Industry(params={}) {
     this.type   = params.type ? params.type : 0;
 
     this.sciResearch    = new Material({name: "Scientific Research"});
+    this.researched = {}; // Object of acquired Research. Keys = research name
 
     //A map of the NAME of materials required to create produced materials to
     //how many are needed to produce 1 unit of produced materials
@@ -682,7 +195,7 @@ Industry.prototype.init = function() {
             this.prodMats = ["Water"];
             break;
         case Industries.Agriculture:
-            this.reFac  = 0.75;
+            this.reFac  = 0.72;
             this.sciFac = 0.5;
             this.hwFac  = 0.2;
             this.robFac = 0.3;
@@ -783,7 +296,7 @@ Industry.prototype.init = function() {
             this.aiFac  = 0.19;
             this.advFac = 0.17;
             this.reqMats = {
-                "Metal":    2.5,
+                "Metal":    2,
                 "Energy":   1,
             }
             this.prodMats = ["Hardware"];
@@ -838,10 +351,10 @@ Industry.prototype.init = function() {
             this.sciFac = 0.05;
             this.hwFac  = 0.05;
             this.reqMats = {
-                "Metal":    20,
-                "Energy":   10,
-                "Water":    10,
-                "Hardware": 5
+                "Metal":    5,
+                "Energy":   5,
+                "Water":    2,
+                "Hardware": 4
             }
             this.prodMats = ["RealEstate"];
             this.makesProducts = true;
@@ -1110,7 +623,11 @@ Industry.prototype.processMaterials = function(marketCycles=1, company) {
                 var mat = warehouse.materials[this.prodMats[0]];
                 //Calculate the maximum production of this material based
                 //on the office's productivity
-                var maxProd = this.getOfficeProductivity(office) * this.prodMult * company.getProductionMultiplier(), prod;
+                var maxProd = this.getOfficeProductivity(office)
+                            * this.prodMult                     // Multiplier from materials
+                            * company.getProductionMultiplier()
+                            * this.getProductionMultiplier();   // Multiplier from Research
+                let prod;
 
                 if (mat.prdman[0]) {
                     //Production is manually limited
@@ -1216,11 +733,11 @@ Industry.prototype.processMaterials = function(marketCycles=1, company) {
                     }
 
                     //Calculate how much of the material sells (per second)
-                    var markup = 1, markupLimit = mat.qlt / mat.mku;
+                    let markup = 1, markupLimit = mat.getMarkupLimit();
                     if (sCost > mat.bCost) {
                         //Penalty if difference between sCost and bCost is greater than markup limit
                         if ((sCost - mat.bCost) > markupLimit) {
-                            markup = markupLimit / (sCost - mat.bCost);
+                            markup = Math.pow(markupLimit / (sCost - mat.bCost), 2);
                         }
                     } else if (sCost < mat.bCost) {
                         if (sCost <= 0) {
@@ -1234,9 +751,13 @@ Industry.prototype.processMaterials = function(marketCycles=1, company) {
                     var businessFactor = this.getBusinessFactor(office);        //Business employee productivity
                     var advertisingFactor = this.getAdvertisingFactors()[0];    //Awareness + popularity
                     var marketFactor = this.getMarketFactor(mat);               //Competition + demand
-                    var maxSell = (mat.qlt + .001) * marketFactor * markup * businessFactor *
-                                  company.getSalesMultiplier() * advertisingFactor;
-
+                    var maxSell = (mat.qlt + .001)
+                                * marketFactor
+                                * markup
+                                * businessFactor
+                                * company.getSalesMultiplier()
+                                * advertisingFactor
+                                * this.getSalesMultiplier();
                     var sellAmt;
                     if (isString(mat.sllman[1])) {
                         //Dynamically evaluated
@@ -1352,8 +873,10 @@ Industry.prototype.processMaterials = function(marketCycles=1, company) {
         //Produce Scientific Research based on R&D employees
         //Scientific Research can be produced without a warehouse
         if (office instanceof OfficeSpace) {
-            this.sciResearch.qty += (.005 * Math.pow(office.employeeProd[EmployeePositions.RandD], 0.5)
-                                     * company.getScientificResearchMultiplier());
+            this.sciResearch.qty += (.005
+                                     * Math.pow(office.employeeProd[EmployeePositions.RandD], 0.5)
+                                     * company.getScientificResearchMultiplier()
+                                     * this.getScientificResearchMultiplier());
         }
     }
     return [revenue, expenses];
@@ -1413,8 +936,11 @@ Industry.prototype.processProduct = function(marketCycles=1, product, corporatio
             case "PRODUCTION":
             //Calculate the maximum production of this material based
             //on the office's productivity
-            var maxProd = this.getOfficeProductivity(office, {forProduct:true}) *
-                          corporation.getProductionMultiplier() * this.prodMult, prod;
+            var maxProd = this.getOfficeProductivity(office, {forProduct:true})
+                        * corporation.getProductionMultiplier()
+                        * this.prodMult                     // Multiplier from materials
+                        * this.getProductionMultiplier();   // Multiplier from research
+            let prod;
 
             //Account for whether production is manually limited
             if (product.prdman[city][0]) {
@@ -1499,8 +1025,14 @@ Industry.prototype.processProduct = function(marketCycles=1, product, corporatio
             var businessFactor = this.getBusinessFactor(office);        //Business employee productivity
             var advertisingFactor = this.getAdvertisingFactors()[0];    //Awareness + popularity
             var marketFactor = this.getMarketFactor(product);        //Competition + demand
-            var maxSell = 0.5 * Math.pow(product.rat, 0.65) * marketFactor * corporation.getSalesMultiplier() *
-                          Math.pow(markup, 2) * businessFactor * advertisingFactor;
+            var maxSell = 0.5
+                        * Math.pow(product.rat, 0.65)
+                        * marketFactor
+                        * corporation.getSalesMultiplier()
+                        * Math.pow(markup, 2)
+                        * businessFactor
+                        * advertisingFactor
+                        * this.getSalesMultiplier();
             var sellAmt;
             if (product.sllman[city][0] && isString(product.sllman[city][1])) {
                 //Sell amount is dynamically evaluated
@@ -1521,6 +1053,7 @@ Industry.prototype.processProduct = function(marketCycles=1, product, corporatio
                 //Backwards compatibility, -1 = 0
                 sellAmt = maxSell;
             }
+            if (sellAmt < 0) { sellAmt = 0; }
             sellAmt = sellAmt * SecsPerMarketCycle * marketCycles;
             sellAmt = Math.min(product.data[city][0], sellAmt); //data[0] is qty
             if (sellAmt && sCost) {
@@ -1567,12 +1100,12 @@ Industry.prototype.upgrade = function(upgrade, refs) {
 
     switch (upgN) {
         case 0: //Coffee, 5% energy per employee
-            for (var i = 0; i < office.employees.length; ++i) {
-                office.employees[i].ene = Math.min(office.employees[i].ene * 1.05, 100);
+            for (let i = 0; i < office.employees.length; ++i) {
+                office.employees[i].ene = Math.min(office.employees[i].ene * 1.05, office.maxEne);
             }
             break;
         case 1: //AdVert.Inc,
-            var advMult = corporation.getAdvertisingMultiplier();
+            var advMult = corporation.getAdvertisingMultiplier() * this.getAdvertisingMultiplier();
             this.awareness += (3 * advMult);
             this.popularity += (1 * advMult);
             this.awareness *= (1.01 * advMult);
@@ -1629,6 +1162,165 @@ Industry.prototype.getMarketFactor = function(mat) {
     return mat.dmd * (100 - mat.cmp)/100;
 }
 
+// Returns a boolean indicating whether this Industry has the specified Research
+Industry.prototype.hasResearch = function(name) {
+    return (this.researched[name] === true);
+}
+
+Industry.prototype.updateResearchTree = function() {
+    const researchTree = IndustryResearchTrees[this.type];
+
+    // Since ResearchTree data isnt saved, we'll update the Research Tree data
+    // based on the stored 'researched' property in the Industry object
+    if (Object.keys(researchTree.researched).length !== Object.keys(this.researched).length) {
+        console.log("Updating Corporation Research Tree Data");
+        for (let research in this.researched) {
+            researchTree.research(research);
+        }
+    }
+}
+
+// Get multipliers from Research
+Industry.prototype.getAdvertisingMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getAdvertisingMultiplier();
+}
+
+Industry.prototype.getEmployeeChaMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getEmployeeChaMultiplier();
+}
+
+Industry.prototype.getEmployeeCreMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getEmployeeCreMultiplier();
+}
+
+Industry.prototype.getEmployeeEffMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getEmployeeEffMultiplier();
+}
+
+Industry.prototype.getEmployeeIntMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getEmployeeIntMultiplier();
+}
+
+Industry.prototype.getProductionMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getProductionMultiplier();
+}
+
+Industry.prototype.getSalesMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getSalesMultiplier();
+}
+
+Industry.prototype.getScientificResearchMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getScientificResearchMultiplier();
+}
+
+Industry.prototype.getStorageMultiplier = function() {
+    this.updateResearchTree();
+    return IndustryResearchTrees[this.type].getStorageMultiplier();
+}
+
+// Create the Research Tree UI for this Industry
+Industry.prototype.createResearchBox = function() {
+    const boxId = "corporation-research-popup-box";
+
+    if (researchTreeBoxOpened) {
+        // It's already opened, so delete it to refresh content
+        removeElementById(boxId);
+        researchTreeBox = null;
+    }
+
+    this.updateResearchTree();
+    const researchTree = IndustryResearchTrees[this.type];
+
+
+    // Create the popup first, so that the tree diagram can be added to it
+    // This is handled by Treant
+    researchTreeBox = createPopup(boxId, [], { backgroundColor: "black" });
+
+    // Get the tree's markup (i.e. config) for Treant
+    const markup = researchTree.createTreantMarkup();
+    markup.chart.container = "#" + boxId + "-content";
+    markup.chart.nodeAlign = "BOTTOM";
+    markup.chart.rootOrientation = "WEST";
+    markup.chart.siblingSeparation = 40;
+    markup.chart.connectors = {
+        type: "step",
+        style: {
+            "arrow-end": "block-wide-long",
+            "stroke": "white",
+            "stroke-width": 2,
+        },
+    }
+
+    // Construct the tree with Treant
+    const treantTree = new Treant(markup);
+
+    // Add Event Listeners for all Nodes
+    const allResearch = researchTree.getAllNodes();
+    for (let i = 0; i < allResearch.length; ++i) {
+        // Get the Research object
+        const research = ResearchMap[allResearch[i]];
+
+        // Get the DOM Element to add a click listener to it
+        const sanitizedName = allResearch[i].replace(/\s/g, '');
+        const div = document.getElementById(sanitizedName + "-corp-research-click-listener");
+        if (div == null) {
+            console.warn(`Could not find Research Tree div for ${sanitizedName}`);
+            continue;
+        }
+
+        div.addEventListener("click", () => {
+            if (this.sciResearch.qty >= research.cost) {
+                this.sciResearch.qty -= research.cost;
+
+                // Get the Node from the Research Tree and set its 'researched' property
+                researchTree.research(allResearch[i]);
+                this.researched[allResearch[i]] = true;
+
+                return this.createResearchBox();
+            } else {
+                dialogBoxCreate(`You do not have enough Scientific Research for ${research.name}`);
+            }
+        });
+    }
+
+
+    const boxContent = document.getElementById(`${boxId}-content`);
+    if (boxContent != null) {
+        // Add information about multipliers from research at the bottom of the popup
+        appendLineBreaks(boxContent, 2);
+        boxContent.appendChild(createElement("pre", {
+            display: "block",
+            innerText:  `Multipliers from research:\n` +
+                        ` * Advertising Multiplier: x${researchTree.getAdvertisingMultiplier()}\n` +
+                        ` * Employee Charisma Multiplier: x${researchTree.getEmployeeChaMultiplier()}\n` +
+                        ` * Employee Creativity Multiplier: x${researchTree.getEmployeeCreMultiplier()}\n` +
+                        ` * Employee Efficiency Multiplier: x${researchTree.getEmployeeEffMultiplier()}\n` +
+                        ` * Employee Intelligence Multiplier: x${researchTree.getEmployeeIntMultiplier()}\n` +
+                        ` * Production Multiplier: x${researchTree.getProductionMultiplier()}\n` +
+                        ` * Sales Multiplier: x${researchTree.getSalesMultiplier()}\n` +
+                        ` * Scientific Research Multiplier: x${researchTree.getScientificResearchMultiplier()}\n` +
+                        ` * Storage Multiplier: x${researchTree.getStorageMultiplier()}`,
+        }));
+
+        // Close button
+        boxContent.appendChild(createPopupCloseButton(researchTreeBox, {
+            class: "std-button",
+            display: "block",
+            innerText: "Close",
+        }));
+    }
+
+    researchTreeBoxOpened = true;
+}
+
 Industry.prototype.toJSON = function() {
 	return Generic_toJSON("Industry", this);
 }
@@ -1638,16 +1330,6 @@ Industry.fromJSON = function(value) {
 }
 
 Reviver.constructors.Industry = Industry;
-
-var EmployeePositions = {
-    Operations: "Operations",
-    Engineer: "Engineer",
-    Business: "Business",
-    Management: "Management",
-    RandD: "Research & Development",
-    Training:"Training",
-    Unassigned:"Unassigned",
-}
 
 function Employee(params={}) {
     if (!(this instanceof Employee)) {
@@ -1669,6 +1351,8 @@ function Employee(params={}) {
     this.sal    = params.salary         ? params.salary         : getRandomInt(0.1, 5);
     this.pro    = 0; //Productivity, This is calculated
 
+    this.cyclesUntilRaise = CyclesPerEmployeeRaise;
+
     this.loc    = params.loc            ? params.loc : "";
     this.pos    = EmployeePositions.Unassigned;
 }
@@ -1683,6 +1367,13 @@ Employee.prototype.process = function(marketCycles=1, office) {
         this.int -= det;
         this.eff -= det;
         this.cha -= det;
+    }
+
+    // Employee salaries slowly go up over time
+    this.cyclesUntilRaise -= marketCycles;
+    if (this.cyclesUntilRaise <= 0) {
+        this.salary += EmployeeRaiseAmount;
+        this.cyclesUntilRaise += CyclesPerEmployeeRaise;
     }
 
     //Training
@@ -1710,11 +1401,11 @@ Employee.prototype.process = function(marketCycles=1, office) {
     return salary;
 }
 
-Employee.prototype.calculateProductivity = function(corporation) {
-    var effCre = this.cre * corporation.getEmployeeCreMultiplier(),
-        effCha = this.cha * corporation.getEmployeeChaMultiplier(),
-        effInt = this.int * corporation.getEmployeeIntMultiplier(),
-        effEff = this.eff * corporation.getEmployeeEffMultiplier();
+Employee.prototype.calculateProductivity = function(corporation, industry) {
+    var effCre = this.cre * corporation.getEmployeeCreMultiplier() * industry.getEmployeeCreMultiplier(),
+        effCha = this.cha * corporation.getEmployeeChaMultiplier() * industry.getEmployeeChaMultiplier(),
+        effInt = this.int * corporation.getEmployeeIntMultiplier() * industry.getEmployeeIntMultiplier(),
+        effEff = this.eff * corporation.getEmployeeEffMultiplier() * industry.getEmployeeEffMultiplier();
     var prodBase = this.mor * this.hap * this.ene * 1e-6, prodMult;
     switch(this.pos) {
         //Calculate productivity based on position. This is multipled by prodBase
@@ -1760,11 +1451,11 @@ Employee.prototype.throwParty = function(money) {
 }
 
 //'panel' is the DOM element on which to create the UI
-Employee.prototype.createUI = function(panel, corporation) {
-    var effCre = this.cre * corporation.getEmployeeCreMultiplier(),
-        effCha = this.cha * corporation.getEmployeeChaMultiplier(),
-        effInt = this.int * corporation.getEmployeeIntMultiplier(),
-        effEff = this.eff * corporation.getEmployeeEffMultiplier();
+Employee.prototype.createUI = function(panel, corporation, industry) {
+    var effCre = this.cre * corporation.getEmployeeCreMultiplier() * industry.getEmployeeCreMultiplier(),
+        effCha = this.cha * corporation.getEmployeeChaMultiplier() * industry.getEmployeeChaMultiplier(),
+        effInt = this.int * corporation.getEmployeeIntMultiplier() * industry.getEmployeeIntMultiplier(),
+        effEff = this.eff * corporation.getEmployeeEffMultiplier() * industry.getEmployeeEffMultiplier();
     panel.style.color = "white";
     panel.appendChild(createElement("p", {
         id:"cmpy-mgmt-employee-" + this.name + "-panel-text",
@@ -1805,11 +1496,11 @@ Employee.prototype.createUI = function(panel, corporation) {
     panel.appendChild(selector);
 }
 
-Employee.prototype.updateUI = function(panel, corporation) {
-    var effCre = this.cre * corporation.getEmployeeCreMultiplier(),
-        effCha = this.cha * corporation.getEmployeeChaMultiplier(),
-        effInt = this.int * corporation.getEmployeeIntMultiplier(),
-        effEff = this.eff * corporation.getEmployeeEffMultiplier();
+Employee.prototype.updateUI = function(panel, corporation, industry) {
+    var effCre = this.cre * corporation.getEmployeeCreMultiplier() * industry.getEmployeeCreMultiplier(),
+        effCha = this.cha * corporation.getEmployeeChaMultiplier() * industry.getEmployeeChaMultiplier(),
+        effInt = this.int * corporation.getEmployeeIntMultiplier() * industry.getEmployeeIntMultiplier(),
+        effEff = this.eff * corporation.getEmployeeEffMultiplier() * industry.getEmployeeEffMultiplier();
     if (panel == null) {
         console.log("ERROR: Employee.updateUI() called with null panel");
         return;
@@ -1855,8 +1546,16 @@ function OfficeSpace(params={}) {
     this.beau   = params.beauty      ? params.beauty     : 1;
     this.tier   = OfficeSpaceTiers.Basic;
 
-    this.minEne     = 0; //Minimum energy of employees, based on office
-    this.minHap     = 0; //Minimum happiness of employees, based on office.
+    // Min/max energy of employees
+    this.minEne     = 0;
+    this.maxEne     = 100;
+
+    // Min/max Happiness of office
+    this.minHap     = 0;
+    this.maxHap     = 100;
+
+    // Maximum Morale of office
+    this.maxMor     = 100;
 
     this.employees = [];
     this.employeeProd = {
@@ -1871,6 +1570,22 @@ function OfficeSpace(params={}) {
 
 OfficeSpace.prototype.process = function(marketCycles=1, parentRefs) {
     var corporation = parentRefs.corporation, industry = parentRefs.industry;
+
+    // Process Office properties
+    this.maxEne = 100;
+    this.maxHap = 100;
+    this.maxMor = 100;
+    if (industry.hasResearch("Go-Juice")) {
+        this.maxEne += 10;
+    }
+    if (industry.hasResearch("JoyWire")) {
+        this.maxHap += 10;
+    }
+    if (industry.hasResearch("Sti.mu")) {
+        this.maxMor += 10;
+    }
+
+    // Calculate changes in Morale/Happiness/Energy for Employees
     var perfMult=1; //Multiplier for employee morale/happiness/energy based on company performance
     if (industry.funds < 0 && industry.lastCycleRevenue < 0) {
         perfMult = Math.pow(0.99, marketCycles);
@@ -1878,20 +1593,40 @@ OfficeSpace.prototype.process = function(marketCycles=1, parentRefs) {
         perfMult = Math.pow(1.01, marketCycles);
     }
 
+    const hasAutobrew = industry.hasResearch("AutoBrew");
+    const hasAutoparty = industry.hasResearch("AutoPartyManager");
+
     var salaryPaid = 0;
-    for (var i = 0; i < this.employees.length; ++i) {
-        var emp = this.employees[i];
-        emp.mor *= perfMult;
-        emp.hap *= perfMult;
-        emp.ene *= perfMult;
-        var salary = emp.process(marketCycles, this);
+    for (let i = 0; i < this.employees.length; ++i) {
+        const emp = this.employees[i];
+        if (hasAutoparty) {
+            emp.mor = this.maxMor;
+            emp.hap = this.maxHap;
+        } else {
+            emp.mor *= perfMult;
+            emp.hap *= perfMult;
+            emp.mor = Math.min(emp.mor, this.maxMor);
+            emp.hap = Math.min(emp.hap, this.maxHap);
+        }
+
+        if (hasAutobrew) {
+            emp.ene = this.maxEne;
+        } else {
+            emp.ene *= perfMult;
+            emp.ene = Math.min(emp.ene, this.maxEne);
+        }
+
+        const salary = emp.process(marketCycles, this);
         salaryPaid += salary;
     }
-    this.calculateEmployeeProductivity(marketCycles, corporation);
+
+    this.calculateEmployeeProductivity(marketCycles, parentRefs);
     return salaryPaid;
 }
 
-OfficeSpace.prototype.calculateEmployeeProductivity = function(marketCycles=1, corporation) {
+OfficeSpace.prototype.calculateEmployeeProductivity = function(marketCycles=1, parentRefs) {
+    var company = parentRefs.corporation, industry = parentRefs.industry;
+
     //Reset
     for (var name in this.employeeProd) {
         if (this.employeeProd.hasOwnProperty(name)) {
@@ -1902,7 +1637,7 @@ OfficeSpace.prototype.calculateEmployeeProductivity = function(marketCycles=1, c
     var total = 0;
     for (var i = 0; i < this.employees.length; ++i) {
         var employee = this.employees[i];
-        var prod = employee.calculateProductivity(corporation);
+        var prod = employee.calculateProductivity(company, industry);
         this.employeeProd[employee.pos] += prod;
         total += prod;
     }
@@ -1911,7 +1646,7 @@ OfficeSpace.prototype.calculateEmployeeProductivity = function(marketCycles=1, c
 
 //Takes care of UI as well
 OfficeSpace.prototype.findEmployees = function(parentRefs) {
-    var company = parentRefs.corporation, division = parentRefs.division;
+    var company = parentRefs.corporation, division = parentRefs.industry;
     if (document.getElementById("cmpy-mgmt-hire-employee-popup") != null) {return;}
 
     //Generate three random employees (meh, decent, amazing)
@@ -1994,7 +1729,7 @@ OfficeSpace.prototype.findEmployees = function(parentRefs) {
 }
 
 OfficeSpace.prototype.hireEmployee = function(employee, parentRefs) {
-    var company = parentRefs.corporation, division = parentRefs.division;
+    var company = parentRefs.corporation, division = parentRefs.industry;
     var yesBtn = yesNoTxtInpBoxGetYesButton(),
         noBtn = yesNoTxtInpBoxGetNoButton();
     yesBtn.innerHTML = "Hire";
@@ -2019,7 +1754,7 @@ OfficeSpace.prototype.hireEmployee = function(employee, parentRefs) {
 }
 
 OfficeSpace.prototype.hireRandomEmployee = function(parentRefs) {
-    var company = parentRefs.corporation, division = parentRefs.division;
+    var company = parentRefs.corporation, division = parentRefs.industry;
     if (document.getElementById("cmpy-mgmt-hire-employee-popup") != null) {return;}
 
     //Generate three random employees (meh, decent, amazing)
@@ -2131,13 +1866,15 @@ Warehouse.prototype.updateMaterialSizeUsed = function() {
     }
 }
 
-Warehouse.prototype.updateSize = function(corporation) {
+Warehouse.prototype.updateSize = function(corporation, industry) {
     //Backwards compatibility
     if (this.level == null || this.level === 0) {
         this.level = Math.round(this.size / 100);
     }
 
-    this.size = (this.level * 100) * corporation.getStorageMultiplier();
+    this.size = (this.level * 100)
+              * corporation.getStorageMultiplier()
+              * industry.getStorageMultiplier();
 }
 
 Warehouse.prototype.createUI = function(parentRefs) {
@@ -2166,7 +1903,7 @@ Warehouse.prototype.createUI = function(parentRefs) {
             }
 
             ++this.level;
-            this.updateSize(company);
+            this.updateSize(company, industry);
             company.funds = company.funds.minus(upgradeCost);
             this.createUI(parentRefs);
             return;
@@ -2183,16 +1920,14 @@ Warehouse.prototype.createUI = function(parentRefs) {
             reqText += " and " + industry.getProductDescriptionText();
         }
     } else if (industry.makesProducts) {
-        reqText += industry.getProductDescriptionText();
+        reqText += (industry.getProductDescriptionText() + ".");
     }
-    reqText += "<br><br>To get started with production, purchase your required " +
-               "materials or import them from another of your company's divisions.<br><br>";
 
     //Material ratio text for tooltip
-    var reqRatioText = "The exact requirements for production are:<br>";
+    var reqRatioText = ". The exact requirements for production are:<br>";
     for (var matName in industry.reqMats) {
         if (industry.reqMats.hasOwnProperty(matName)) {
-            reqRatioText += (industry.reqMats[matName] + " " + matName + "<br>");
+            reqRatioText += ([" *", industry.reqMats[matName], matName].join(" ") + "<br>");
         }
     }
     reqRatioText += "in order to create ";
@@ -2205,9 +1940,12 @@ Warehouse.prototype.createUI = function(parentRefs) {
         reqRatioText += "one of its Products";
     }
 
-    industryWarehousePanel.appendChild(createElement("p", {
-        innerHTML:reqText, tooltipleft:reqRatioText
-    }));
+    reqText += reqRatioText;
+
+    reqText += "<br><br>To get started with production, purchase your required " +
+               "materials or import them from another of your company's divisions.<br><br>";
+
+    industryWarehousePanel.appendChild(createElement("p", { innerHTML: reqText }));
 
     //Current state
     industryWarehouseStateText = createElement("p");
@@ -2380,14 +2118,17 @@ Warehouse.prototype.createMaterialUI = function(mat, matName, parentRefs) {
             });
             var confirmBtn;
             var input = createElement("input", {
-                type:"number", value:mat.buy ? mat.buy : null, placeholder: "Purchase amount",
+                margin: "5px",
+                placeholder: "Purchase amount",
+                type: "number",
+                value: mat.buy ? mat.buy : null,
                 onkeyup:(e)=>{
                     e.preventDefault();
                     if (e.keyCode === 13) {confirmBtn.click();}
                 }
             });
-            confirmBtn = createElement("a", {
-                innerText:"Confirm", class:"a-link-button",
+            confirmBtn = createElement("button", {
+                innerText:"Confirm", class:"std-button",
                 clickListener:()=>{
                     if (isNaN(input.value)) {
                         dialogBoxCreate("Invalid amount");
@@ -2400,8 +2141,8 @@ Warehouse.prototype.createMaterialUI = function(mat, matName, parentRefs) {
                     }
                 }
             });
-            var clearButton = createElement("a", {
-                innerText:"Clear Purchase", class:"a-link-button",
+            var clearButton = createElement("button", {
+                innerText:"Clear Purchase", class:"std-button",
                 clickListener:()=>{
                     mat.buy = 0;
                     removeElementById(purchasePopupId);
@@ -2409,12 +2150,11 @@ Warehouse.prototype.createMaterialUI = function(mat, matName, parentRefs) {
                     return false;
                 }
             });
-            var cancelBtn = createElement("a", {
-                innerText:"Cancel", class:"a-link-button",
-                clickListener:()=>{
-                    removeElementById(purchasePopupId);
-                }
+            const cancelBtn = createPopupCloseButton(purchasePopupId, {
+                class: "std-button",
+                innerText: "Cancel",
             });
+
             createPopup(purchasePopupId, [txt, input, confirmBtn, clearButton, cancelBtn]);
             input.focus();
         }
@@ -2589,7 +2329,7 @@ Warehouse.prototype.createMaterialUI = function(mat, matName, parentRefs) {
             var br = createElement("br", {});
             var confirmBtn;
             var inputQty = createElement("input", {
-                type:"text", marginTop:"4px",
+                type: "text", marginTop: "4px",
                 value: mat.sllman[1] ? mat.sllman[1] : null, placeholder: "Sell amount",
                 onkeyup:(e)=>{
                     e.preventDefault();
@@ -2597,16 +2337,17 @@ Warehouse.prototype.createMaterialUI = function(mat, matName, parentRefs) {
                 }
             });
             var inputPx = createElement("input", {
-                type:"text", marginTop:"4px",
+                type: "text", marginTop: "4px",
                 value: mat.sCost ? mat.sCost : null, placeholder: "Sell price",
-                onkeyup:(e)=>{
+                onkeyup: (e) => {
                     e.preventDefault();
                     if (e.keyCode === 13) {confirmBtn.click();}
                 }
             });
-            confirmBtn = createElement("a", {
-                innerText:"Confirm", class:"a-link-button", margin:"6px",
-                clickListener:()=>{
+            confirmBtn = createElement("button", {
+                class: "std-button",
+                innerText: "Confirm",
+                clickListener: () => {
                     //Parse price
                     var cost = inputPx.value.replace(/\s+/g, '');
                     cost = cost.replace(/[^-()\d/*+.MP]/g, ''); //Sanitize cost
@@ -2669,16 +2410,84 @@ Warehouse.prototype.createMaterialUI = function(mat, matName, parentRefs) {
                     return false;
                 }
             });
-            var cancelBtn = createElement("a", {
-                innerText:"Cancel", class:"a-link-button", margin: "6px",
-                clickListener:()=>{
-                    removeElementById(sellPopupid);
-                }
+            const cancelBtn = createPopupCloseButton(sellPopupid, {
+                class: "std-button",
+                innerText: "Cancel",
             });
+
             createPopup(sellPopupid, [txt, br, inputQty, inputPx, confirmBtn, cancelBtn]);
             inputQty.focus();
         }
     }));
+
+    // Button to use Market-TA research, if you have it
+    if (industry.hasResearch("Market-TA.I")) {
+        let marketTaClickListener = () => {
+            const popupId = "cmpy-mgmt-marketta-popup";
+            const markupLimit = mat.getMarkupLimit();
+            const ta1 = createElement("p", {
+                innerHTML: "<u><strong>Market-TA.I</strong></u><br>" +
+                           "The maximum sale price you can mark this up to is "  +
+                           numeralWrapper.format(mat.bCost + markupLimit, '$0.000a') +
+                           ". This means that if you set the sale price higher than this, " +
+                           "you will begin to experience a loss in number of sales",
+            });
+            const closeBtn = createPopupCloseButton(popupId, {
+                class: "std-button",
+                display: "block",
+            });
+
+            if (industry.hasResearch("Market-TA.II")) {
+                let updateTa2Text;
+                const ta2Text = createElement("p");
+                const ta2Input = createElement("input", {
+                    marginTop: "4px",
+                    onkeyup: (e) => {
+                        e.preventDefault();
+                        updateTa2Text();
+                    },
+                    type: "number",
+                    value: mat.bCost,
+                });
+
+                // Function that updates the text in ta2Text element
+                updateTa2Text = function() {
+                    const sCost = parseFloat(ta2Input.value);
+                    let markup = 1;
+                    if (sCost > mat.bCost) {
+                        //Penalty if difference between sCost and bCost is greater than markup limit
+                        if ((sCost - mat.bCost) > markupLimit) {
+                            markup = Math.pow(markupLimit / (sCost - mat.bCost), 2);
+                        }
+                    } else if (sCost < mat.bCost) {
+                        if (sCost <= 0) {
+                            markup = 1e12; //Sell everything, essentially discard
+                        } else {
+                            //Lower prices than market increases sales
+                            markup = mat.bCost / sCost;
+                        }
+                    }
+                    ta2Text.innerHTML = `<br><u><strong>Market-TA.II</strong></u><br>` +
+                                        `If you sell at ${numeralWrapper.format(sCost, "$0.0001")}, ` +
+                                        `then you will sell ${formatNumber(markup, 5)}x as much compared ` +
+                                        `to if you sold at market price.`;
+                }
+                updateTa2Text();
+                createPopup(popupId, [ta1, ta2Text, ta2Input, closeBtn]);
+            } else {
+                // Market-TA.I only
+                createPopup(popupId, [ta1, closeBtn]);
+            }
+        };
+
+        buttonPanel.appendChild(createElement("a", {
+            class: "a-link-button",
+            clickListener:() => { marketTaClickListener(); },
+            display: "inline-block",
+            innerText: "Market-TA",
+
+        }))
+    }
 
     return div;
 }
@@ -2958,99 +2767,6 @@ Warehouse.fromJSON = function(value) {
 
 Reviver.constructors.Warehouse = Warehouse;
 
-//Corporation Unlock Upgrades
-//Upgrades for entire corporation, unlocks features, either you have it or you dont
-//The structure is [index in Corporation feature upgrades array, price ]
-var CorporationUnlockUpgrades = {
-    //Lets you export goods
-    "0":  [0, 20e9, "Export",
-                    "Develop infrastructure to export your materials to your other facilities. " +
-                    "This allows you to move materials around between different divisions and cities."],
-
-    //Lets you buy exactly however many required materials you need for production
-    "1":  [1, 50e9, "Smart Supply", "Use advanced AI to anticipate your supply needs. " +
-                     "This allows you to purchase exactly however many materials you need for production."],
-
-    //Displays each material/product's demand
-    "2":  [2, 5e9, "Market Research - Demand",
-                    "Mine and analyze market data to determine the demand of all resources. " +
-                    "The demand attribute, which affects sales, will be displayed for every material and product."],
-
-    //Display's each material/product's competition
-    "3":  [3, 5e9, "Market Data - Competition",
-                    "Mine and analyze market data to determine how much competition there is on the market " +
-                    "for all resources. The competition attribute, which affects sales, will be displayed for " +
-                    "for every material and product."],
-    "4":  [4, 10e9, "VeChain",
-                    "Use AI and blockchain technology to identify where you can improve your supply chain systems. " +
-                    "This upgrade will allow you to view a wide array of useful statistics about your " +
-                    "Corporation."]
-}
-
-//Corporation Upgrades
-//Upgrades for entire corporation, levelable upgrades
-//The structure is [index in Corporation upgrades array, base price, price mult, benefit mult (additive),
-//                  name, desc]
-var CorporationUpgrades = {
-    //Smart factories, increases production
-    "0":    [0, 2e9, 1.07, 0.03,
-            "Smart Factories", "Advanced AI automatically optimizes the operation and productivity " +
-            "of factories. Each level of this upgrade increases your global production by 3% (additive)."],
-
-    //Smart warehouses, increases storage size
-    "1":    [1, 2e9, 1.07, .1,
-             "Smart Storage", "Advanced AI automatically optimizes your warehouse storage methods. " +
-             "Each level of this upgrade increases your global warehouse storage size by 10% (additive)."],
-
-    //Advertise through dreams, passive popularity/ awareness gain
-    "2":    [2, 8e9, 1.09, .001,
-            "DreamSense", "Use DreamSense LCC Technologies to advertise your corporation " +
-            "to consumers through their dreams. Each level of this upgrade provides a passive " +
-            "increase in awareness of all of your companies (divisions) by 0.004 / market cycle," +
-            "and in popularity by 0.001 / market cycle. A market cycle is approximately " +
-            "20 seconds."],
-
-    //Makes advertising more effective
-    "3":    [3, 4e9, 1.12, 0.005,
-            "Wilson Analytics", "Purchase data and analysis from Wilson, a marketing research " +
-            "firm. Each level of this upgrades increases the effectiveness of your " +
-            "advertising by 0.5% (additive)."],
-
-    //Augmentation for employees, increases cre
-    "4":    [4, 1e9, 1.06, 0.1,
-            "Nuoptimal Nootropic Injector Implants", "Purchase the Nuoptimal Nootropic " +
-            "Injector augmentation for your employees. Each level of this upgrade " +
-            "globally increases the creativity of your employees by 10% (additive)."],
-
-    //Augmentation for employees, increases cha
-    "5":    [5, 1e9, 1.06, 0.1,
-            "Speech Processor Implants", "Purchase the Speech Processor augmentation for your employees. " +
-            "Each level of this upgrade globally increases the charisma of your employees by 10% (additive)."],
-
-    //Augmentation for employees, increases int
-    "6":    [6, 1e9, 1.06, 0.1,
-            "Neural Accelerators", "Purchase the Neural Accelerator augmentation for your employees. " +
-            "Each level of this upgrade globally increases the intelligence of your employees " +
-            "by 10% (additive)."],
-
-    //Augmentation for employees, increases eff
-    "7":    [7, 1e9, 1.06, 0.1,
-            "FocusWires", "Purchase the FocusWire augmentation for your employees. Each level " +
-            "of this upgrade globally increases the efficiency of your employees by 10% (additive)."],
-
-    //Improves sales of materials/products
-    "8":    [8, 1e9, 1.08, 0.01,
-            "ABC SalesBots", "Always Be Closing. Purchase these robotic salesmen to increase the amount of " +
-            "materials and products you sell. Each level of this upgrade globally increases your sales " +
-            "by 1% (additive)."],
-
-    //Improves scientific research rate
-    "9":    [9, 5e9, 1.07, 0.05,
-            "Project Insight", "Purchase 'Project Insight', a R&D service provided by the secretive " +
-            "Fulcrum Technologies. Each level of this upgrade globally increases the amount of " +
-            "Scientific Research you produce by 5% (additive)."],
-}
-
 function Corporation(params={}) {
     this.name = params.name ? params.name : "The Corporation";
 
@@ -3064,6 +2780,8 @@ function Corporation(params={}) {
     this.fundingRound = 0;
     this.public     = false; //Publicly traded
     this.numShares  = TOTALSHARES;
+    this.dividendPercentage = 0;
+    this.dividendTaxPercentage = 50;
     this.issuedShares = 0;
     this.sharePrice = 0;
     this.storedCycles = 0;
@@ -3089,33 +2807,51 @@ Corporation.prototype.storeCycles = function(numCycles=1) {
 Corporation.prototype.process = function() {
     var corp = this;
     if (this.storedCycles >= CyclesPerIndustryStateCycle) {
-        var state = this.getState(), marketCycles=1;
+        const state = this.getState();
+        const marketCycles = 1;
         this.storedCycles -= (marketCycles * CyclesPerIndustryStateCycle);
+
+        this.divisions.forEach(function(ind) {
+            ind.process(marketCycles, state, corp);
+        });
 
         //At the start of a new cycle, calculate profits from previous cycle
         if (state === "START") {
             this.revenue = new Decimal(0);
             this.expenses = new Decimal(0);
-            this.divisions.forEach((ind)=>{
+            this.divisions.forEach((ind) => {
+                if (ind.lastCycleRevenue === -Infinity || ind.lastCycleRevenue === Infinity) { return; }
+                if (ind.lastCycleExpenses === -Infinity || ind.lastCycleExpenses === Infinity) { return; }
                 this.revenue = this.revenue.plus(ind.lastCycleRevenue);
                 this.expenses = this.expenses.plus(ind.lastCycleExpenses);
             });
             var profit = this.revenue.minus(this.expenses);
-            var cycleProfit = profit.times(marketCycles * SecsPerMarketCycle);
+            const cycleProfit = profit.times(marketCycles * SecsPerMarketCycle);
             if (isNaN(this.funds)) {
                 dialogBoxCreate("There was an error calculating your Corporations funds and they got reset to 0. " +
                                 "This is a bug. Please report to game developer.<br><br>" +
                                 "(Your funds have been set to $150b for the inconvenience)");
                 this.funds = new Decimal(150e9);
             }
-            this.funds = this.funds.plus(cycleProfit);
+
+            // Process dividends
+            if (this.dividendPercentage > 0 && cycleProfit > 0) {
+                // Validate input again, just to be safe
+                if (isNaN(this.dividendPercentage) || this.dividendPercentage < 0 || this.dividendPercentage > DividendMaxPercentage) {
+                    console.error(`Invalid Corporation dividend percentage: ${this.dividendPercentage}`);
+                } else {
+                    const totalDividends = (this.dividendPercentage / 100) * cycleProfit;
+                    const retainedEarnings = cycleProfit - totalDividends;
+                    const dividendsPerShare = totalDividends / TOTALSHARES;
+                    Player.gainMoney(this.numShares * dividendsPerShare * (this.dividendTaxPercentage / 100));
+                    this.funds = this.funds.plus(retainedEarnings);
+                }
+            } else {
+                this.funds = this.funds.plus(cycleProfit);
+            }
+
             this.updateSharePrice();
         }
-
-        this.divisions.forEach(function(ind) {
-            ind.process(marketCycles, state, corp);
-        });
-
 
         this.state.nextState();
 
@@ -3126,13 +2862,18 @@ Corporation.prototype.process = function() {
 Corporation.prototype.determineValuation = function() {
     var val, profit = (this.revenue.minus(this.expenses)).toNumber();
     if (this.public) {
+        // Account for dividends
+        if (this.dividendPercentage > 0) {
+            profit *= ((100 - this.dividendPercentage) / 100);
+        }
+
         val = this.funds.toNumber() + (profit * 85e3);
         val *= (Math.pow(1.1, this.divisions.length));
         val = Math.max(val, 0);
     } else {
         val = 10e9 + Math.max(this.funds.toNumber(), 0) / 3; //Base valuation
         if (profit > 0) {
-            val += (profit * 320e3);
+            val += (profit * 300e3);
             val *= (Math.pow(1.1, this.divisions.length));
         } else {
             val = 10e9 * Math.pow(1.1, this.divisions.length);
@@ -3179,7 +2920,8 @@ Corporation.prototype.getInvestment = function() {
     yesNoBoxCreate("An investment firm has offered you " + numeralWrapper.format(funding, '$0.000a') +
                    " in funding in exchange for a " + numeralWrapper.format(percShares*100, "0.000a") +
                    "% stake in the company (" + numeralWrapper.format(investShares, '0.000a') + " shares).<br><br>" +
-                   "Do you accept or reject this offer?");
+                   "Do you accept or reject this offer?<br><br>" +
+                   "Hint: Investment firms will offer more money if your corporation is turning a profit");
 }
 
 Corporation.prototype.goPublic = function() {
@@ -3252,7 +2994,7 @@ Corporation.prototype.updateSharePrice = function() {
 
 //One time upgrades that unlock new features
 Corporation.prototype.unlock = function(upgrade) {
-    var upgN = upgrade[0], price = upgrade[1];
+    const upgN = upgrade[0], price = upgrade[1];
     while (this.unlockUpgrades.length <= upgN) {
         this.unlockUpgrades.push(0);
     }
@@ -3262,6 +3004,13 @@ Corporation.prototype.unlock = function(upgrade) {
     }
     this.unlockUpgrades[upgN] = 1;
     this.funds = this.funds.minus(price);
+
+    // Apply effects for one-time upgrades
+    if (upgN === 5) {
+        this.dividendTaxPercentage -= 5;
+    } else if (upgN === 6) {
+        this.dividendTaxPercentage -= 10;
+    }
 }
 
 //Levelable upgrades
@@ -3287,7 +3036,7 @@ Corporation.prototype.upgrade = function(upgrade) {
             var industry = this.divisions[i];
             for (var city in industry.warehouses) {
                 if (industry.warehouses.hasOwnProperty(city) && industry.warehouses[city] instanceof Warehouse) {
-                    industry.warehouses[city].updateSize(this);
+                    industry.warehouses[city].updateSize(this, industry);
                 }
             }
         }
@@ -3364,6 +3113,12 @@ var companyManagementDiv, companyManagementHeaderTabs, companyManagementPanel,
     industryWarehousePanel, industrySmartSupplyCheckbox, industryWarehouseStorageText,
         industryWarehouseUpgradeSizeButton, industryWarehouseStateText,
         industryWarehouseMaterials, industryWarehouseProducts,
+
+    // Research Tree
+    researchTreeBoxOpened = false,
+    researchTreeBox,
+
+    // Tabs
     headerTabs, cityTabs;
 Corporation.prototype.createUI = function() {
     companyManagementDiv = createElement("div", {
@@ -3481,14 +3236,8 @@ Corporation.prototype.updateUIHeaderTabs = function() {
                     return false;
                 }
             });
-            var noBtn = createElement("span", {
-                class:"popup-box-button",
-                innerText:"Cancel",
-                clickListener: function() {
-                    removeElementById("cmpy-mgmt-expand-industry-popup");
-                    return false;
-                }
-            });
+
+            const noBtn = createPopupCloseButton(container, {innerText: "Cancel"});
 
             //Make an object to keep track of what industries you're already in
             var ownedIndustries = {}
@@ -3534,6 +3283,7 @@ Corporation.prototype.updateUIHeaderTabs = function() {
             container.appendChild(content);
             document.getElementById("entire-game-container").appendChild(container);
             container.style.display = "flex";
+            nameInput.focus();
             return false;
         }
     }));
@@ -3627,8 +3377,9 @@ Corporation.prototype.displayCorporationOverviewContent = function() {
         //Sell share buttons
         var sellShares = createElement("a", {
             class:"a-link-button", innerText:"Sell Shares", display:"inline-block",
-            tooltip:"Sell your shares in the company. This is the only way to " +
-                    "profit from your business venture.",
+            tooltip: "Sell your shares in the company. The money earned from selling your " +
+                     "shares goes into your personal account, not the Corporation's. " +
+                     "This is one of the only ways to profit from your business venture.",
             clickListener:()=>{
                 var popupId = "cmpy-mgmt-sell-shares-popup";
                 var currentStockPrice = this.sharePrice;
@@ -3884,6 +3635,70 @@ Corporation.prototype.displayCorporationOverviewContent = function() {
             }
         });
         companyManagementPanel.appendChild(bribeFactions);
+
+        // Set Stock Dividends
+        const issueDividends = createElement("a", {
+            class: "a-link-button",
+            display: "inline-block",
+            innerText: "Issue Dividends",
+            tooltip: "Manage the dividends that are paid out to shareholders (including yourself)",
+            clickListener: () => {
+                const popupId = "cmpy-mgmt-issue-dividends-popup";
+                const descText = "Dividends are a distribution of a portion of the corporation's " +
+                                 "profits to the shareholders. This includes yourself, as well.<br><br>" +
+                                 "In order to issue dividends, simply allocate some percentage " +
+                                 "of your corporation's profits to dividends. This percentage must be an " +
+                                 `integer between 0 and ${DividendMaxPercentage}. (A percentage of 0 means no dividends will be ` +
+                                 "issued<br><br>" +
+                                 "Two important things to note:<br>" +
+                                 " * Issuing dividends will negatively affect your corporation's stock price<br>" +
+                                 " * Dividends are taxed. Taxes start at 50%, but can be decreased<br><br>" +
+                                 "Example: Assume your corporation makes $100m / sec in profit and you allocate " +
+                                 "40% of that towards dividends. That means your corporation will gain $60m / sec " +
+                                 "in funds and the remaining $40m / sec will be paid as dividends. Since your " +
+                                 "corporation starts with 1 billion shares, every shareholder will be paid $0.04 per share " +
+                                 "per second before taxes.";
+                const txt = createElement("p", { innerHTML: descText, });
+
+                let allocateBtn;
+                const dividendPercentInput = createElement("input", {
+                    margin: "5px",
+                    placeholder: "Dividend %",
+                    type: "number",
+                    onkeyup: (e) => {
+                        e.preventDefault();
+                        if (e.keyCode === 13) {allocateBtn.click();}
+                    }
+                });
+
+                allocateBtn = createElement("button", {
+                    class: "std-button",
+                    display: "inline-block",
+                    innerText: "Allocate Dividend Percentage",
+                    clickListener: () => {
+                        const percentage = Math.round(parseInt(dividendPercentInput.value));
+                        if (isNaN(percentage) || percentage < 0 || percentage > DividendMaxPercentage) {
+                            return dialogBoxCreate(`Invalid value. Must be an integer between 0 and ${DividendMaxPercentage}`);
+                        }
+
+                        this.dividendPercentage = percentage;
+
+                        removeElementById(popupId);
+                        return false;
+                    }
+                });
+
+                const cancelBtn = createPopupCloseButton(popupId, {
+                    class: "std-button",
+                    display: "inline-block",
+                    innerText: "Cancel",
+                });
+
+                createPopup(popupId, [txt, dividendPercentInput, allocateBtn, cancelBtn]);
+                dividendPercentInput.focus();
+            },
+        });
+        companyManagementPanel.appendChild(issueDividends);
     } else {
         var findInvestors = createElement("a", {
             class: this.fundingRound >= 4 ? "a-link-button-inactive" : "a-link-button tooltip",
@@ -4014,20 +3829,40 @@ Corporation.prototype.updateCorporationOverviewContent = function() {
         console.log("WARNING: Could not find overview text elemtn in updateCorporationOverviewContent()");
         return;
     }
-    var totalFunds = this.funds,
-        totalRevenue = new Decimal(0),
-        totalExpenses = new Decimal(0);
 
+    // Formatted text for profit
     var profit = this.revenue.minus(this.expenses).toNumber(),
         profitStr = profit >= 0 ? numeralWrapper.format(profit, "$0.000a") : "-" + numeralWrapper.format(-1 * profit, "$0.000a");
 
-    var txt = "Total Funds: " + numeralWrapper.format(totalFunds.toNumber(), '$0.000a') + "<br>" +
+    // Formatted text for dividend information, if applicable
+    let dividendStr = "";
+    if (this.dividendPercentage > 0 && profit > 0) {
+        const totalDividends = (this.dividendPercentage / 100) * profit;
+        const retainedEarnings = profit - totalDividends;
+        const dividendsPerShare = totalDividends / TOTALSHARES;
+        const playerEarnings = this.numShares * dividendsPerShare;
+
+        dividendStr = `Retained Profits (after dividends): ${numeralWrapper.format(retainedEarnings, "$0.000a")} / s<br>` +
+                      `Dividends per share: ${numeralWrapper.format(dividendsPerShare, "$0.000a")} / s<br>` +
+                      `Your earnings (Pre-Tax): ${numeralWrapper.format(playerEarnings, "$0.000a")} / s<br>` +
+                      `Dividend Tax Rate: ${this.dividendTaxPercentage}%<br>` +
+                      `Your earnings (Post-Tax): ${numeralWrapper.format(playerEarnings * (this.dividendTaxPercentage / 100), "$0.000a")} / s<br>`;
+    }
+
+    var txt = "Total Funds: " + numeralWrapper.format(this.funds.toNumber(), '$0.000a') + "<br>" +
               "Total Revenue: " + numeralWrapper.format(this.revenue.toNumber(), "$0.000a") + " / s<br>" +
               "Total Expenses: " + numeralWrapper.format(this.expenses.toNumber(), "$0.000a") + "/ s<br>" +
               "Total Profits: " + profitStr + " / s<br>" +
+              dividendStr +
               "Publicly Traded: " + (this.public ? "Yes" : "No") + "<br>" +
               "Owned Stock Shares: " + numeralWrapper.format(this.numShares, '0.000a') + "<br>" +
               "Stock Price: " + (this.public ? "$" + formatNumber(this.sharePrice, 2) : "N/A") + "<br><br>";
+
+    const storedTime = this.storedCycles * CONSTANTS.MilliPerCycle / 1000;
+    if (storedTime > 15) {
+        txt += `Bonus Time: ${storedTime} seconds<br><br>`;
+    }
+
 
     var prodMult        = this.getProductionMultiplier(),
         storageMult     = this.getStorageMultiplier(),
@@ -4105,13 +3940,11 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
                     return false;
                 }
             });
-            var cancelBtn = createElement("a", {
-                innerText:"Cancel", class:"a-link-button", display:"inline-block", margin:"3px",
-                clickListener:()=>{
-                    removeElementById(popupId);
-                    return false;
-                }
-            })
+            const cancelBtn = createPopupCloseButton(popupId, {
+                class: "std-button",
+                innerText: "Cancel",
+            });
+
             createPopup(popupId, [text, citySelector, confirmBtn, cancelBtn]);
             return false;
         }
@@ -4126,8 +3959,16 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
     }
 
     //Left and right panels
-    var leftPanel = createElement("div", {class:"cmpy-mgmt-industry-left-panel"});
-    var rightPanel = createElement("div", {class:"cmpy-mgmt-industry-right-panel"});
+    var leftPanel = createElement("div", {
+        class: "cmpy-mgmt-industry-left-panel",
+        overflow: "visible",
+        padding: "2px",
+    });
+    var rightPanel = createElement("div", {
+        class: "cmpy-mgmt-industry-right-panel",
+        overflow: "visible",
+        padding: "2px",
+    });
     companyManagementPanel.appendChild(leftPanel);
     companyManagementPanel.appendChild(rightPanel);
 
@@ -4162,7 +4003,10 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
         fontSize:"14px",
     }));
     industryOverviewUpgrades.appendChild(createElement("br", {}));
-    for (var i = 0; i < numUpgrades; ++i) {
+    for (let i = 0; i < numUpgrades; ++i) {
+        if (division.hasResearch("AutoBrew") && i == 0) {
+            continue; // AutoBrew disables Coffee upgrades, which is index 0
+        }
         (function(i, corp, division, office) {
             var upgrade = IndustryUpgrades[i.toString()];
             if (upgrade == null) {
@@ -4357,7 +4201,7 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
             tooltip:"You'll need to hire some employees to get your operations started! " +
                     "It's recommended to have at least one employee in every position",
             clickListener:()=>{
-                office.findEmployees({corporation:this, division:division});
+                office.findEmployees({corporation:this, industry:division});
                 return false;
             }
         });
@@ -4367,7 +4211,7 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
             class:"a-link-button",display:"inline-block",
             innerText:"Hire Employee", fontSize:"13px",
             clickListener:()=>{
-                office.findEmployees({corporation:this, division:division});
+                office.findEmployees({corporation:this, industry:division});
                 return false;
             }
         });
@@ -4380,7 +4224,7 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
         innerText:"Autohire Employee", fontSize:"13px",
         tooltip:"Automatically hires an employee and gives him/her a random name",
         clickListener:()=>{
-            office.hireRandomEmployee({corporation:this, division:division});
+            office.hireRandomEmployee({corporation:this, industry:division});
             return false;
         }
     });
@@ -4491,72 +4335,74 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
     industryEmployeePanel.appendChild(industryOfficeUpgradeSizeButton);
 
     //Throw Office Party
-    industryEmployeePanel.appendChild(createElement("a", {
-        class:"a-link-button", display:"inline-block", innerText:"Throw Party",
-        fontSize:"13px",
-        tooltip:"Throw an office party to increase your employee's morale and happiness",
-        clickListener:()=>{
-            var popupId = "cmpy-mgmt-throw-office-party-popup";
-            var txt = createElement("p", {
-                innerText:"Enter the amount of money you would like to spend PER EMPLOYEE " +
-                          "on this office party"
-            });
-            var totalCostTxt = createElement("p", {
-                innerText:"Throwing this party will cost a total of $0"
-            });
-            var confirmBtn;
-            var input = createElement("input", {
-                type:"number", margin:"5px", placeholder:"$ / employee",
-                inputListener:()=>{
-                    if (isNaN(input.value) || input.value < 0) {
-                        totalCostTxt.innerText = "Invalid value entered!"
-                    } else {
-                        var totalCost = input.value * office.employees.length;
-                        totalCostTxt.innerText = "Throwing this party will cost a total of " + numeralWrapper.format(totalCost, '$0.000a');
-                    }
-                },
-                onkeyup:(e)=>{
-                    e.preventDefault();
-                    if (e.keyCode === 13) {confirmBtn.click();}
-                }
-            });
-            confirmBtn = createElement("a", {
-                class:"a-link-button",
-                display:"inline-block",
-                innerText:"Throw Party",
-                clickListener:()=>{
-                    if (isNaN(input.value) || input.value < 0) {
-                        dialogBoxCreate("Invalid value entered");
-                    } else {
-                        var totalCost = input.value * office.employees.length;
-                        if (this.funds.lt(totalCost)) {
-                            dialogBoxCreate("You don't have enough company funds to throw this party!");
+    if (!division.hasResearch("AutoPartyManager")) {
+        industryEmployeePanel.appendChild(createElement("a", {
+            class:"a-link-button", display:"inline-block", innerText:"Throw Party",
+            fontSize:"13px",
+            tooltip:"Throw an office party to increase your employee's morale and happiness",
+            clickListener:()=>{
+                var popupId = "cmpy-mgmt-throw-office-party-popup";
+                var txt = createElement("p", {
+                    innerText:"Enter the amount of money you would like to spend PER EMPLOYEE " +
+                              "on this office party"
+                });
+                var totalCostTxt = createElement("p", {
+                    innerText:"Throwing this party will cost a total of $0"
+                });
+                var confirmBtn;
+                var input = createElement("input", {
+                    type:"number", margin:"5px", placeholder:"$ / employee",
+                    inputListener:()=>{
+                        if (isNaN(input.value) || input.value < 0) {
+                            totalCostTxt.innerText = "Invalid value entered!"
                         } else {
-                            this.funds = this.funds.minus(totalCost);
-                            var mult;
-                            for (var fooit = 0; fooit < office.employees.length; ++fooit) {
-                                mult = office.employees[fooit].throwParty(input.value);
-                            }
-                            dialogBoxCreate("You threw a party for the office! The morale and happiness " +
-                                            "of each employee increased by " + formatNumber((mult-1) * 100, 2) + "%.");
-                            removeElementById(popupId);
+                            var totalCost = input.value * office.employees.length;
+                            totalCostTxt.innerText = "Throwing this party will cost a total of " + numeralWrapper.format(totalCost, '$0.000a');
                         }
+                    },
+                    onkeyup:(e)=>{
+                        e.preventDefault();
+                        if (e.keyCode === 13) {confirmBtn.click();}
                     }
-                    return false;
-                }
-            });
-            var cancelBtn = createElement("a", {
-                class:"a-link-button",
-                display:"inline-block",
-                innerText:"Cancel",
-                clickListener:()=>{
-                    removeElementById(popupId);
-                    return false;
-                }
-            });
-            createPopup(popupId, [txt, totalCostTxt, input, confirmBtn, cancelBtn]);
-        }
-    }));
+                });
+                confirmBtn = createElement("a", {
+                    class:"a-link-button",
+                    display:"inline-block",
+                    innerText:"Throw Party",
+                    clickListener:()=>{
+                        if (isNaN(input.value) || input.value < 0) {
+                            dialogBoxCreate("Invalid value entered");
+                        } else {
+                            var totalCost = input.value * office.employees.length;
+                            if (this.funds.lt(totalCost)) {
+                                dialogBoxCreate("You don't have enough company funds to throw this party!");
+                            } else {
+                                this.funds = this.funds.minus(totalCost);
+                                var mult;
+                                for (var fooit = 0; fooit < office.employees.length; ++fooit) {
+                                    mult = office.employees[fooit].throwParty(input.value);
+                                }
+                                dialogBoxCreate("You threw a party for the office! The morale and happiness " +
+                                                "of each employee increased by " + formatNumber((mult-1) * 100, 2) + "%.");
+                                removeElementById(popupId);
+                            }
+                        }
+                        return false;
+                    }
+                });
+                var cancelBtn = createElement("a", {
+                    class:"a-link-button",
+                    display:"inline-block",
+                    innerText:"Cancel",
+                    clickListener:()=>{
+                        removeElementById(popupId);
+                        return false;
+                    }
+                });
+                createPopup(popupId, [txt, totalCostTxt, input, confirmBtn, cancelBtn]);
+            }
+        }));
+    }
 
     industryEmployeeManagementUI = createElement("div", {});
     industryEmployeeInfo = createElement("p", {margin:"4px", padding:"4px"});
@@ -4583,7 +4429,7 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
                 for (var i = 0; i < office.employees.length; ++i) {
                     if (office.employees[i].name === name) {
                         removeChildrenFromElement(industryIndividualEmployeeInfo);
-                        office.employees[i].createUI(industryIndividualEmployeeInfo, this);
+                        office.employees[i].createUI(industryIndividualEmployeeInfo, this, division);
                         return;
                     }
                 }
@@ -4663,9 +4509,9 @@ Corporation.prototype.displayDivisionContent = function(division, city) {
         for (var i = 0; i < positions.length; ++i) {
             (function(corp, i) {
                 var info = createElement("h2", {
-                    display:"inline-block", width:"40%", fontSize:"15px",
+                    display:"inline-block", width:"50%", fontSize:"15px",
                     innerText: positions[i] + "(" + counts[i] + ")",
-                    tooltipleft: descriptions[i]
+                    tooltip: descriptions[i]
                 });
                 var plusBtn = createElement("a", {
                     class: unassignedCount > 0 ? "a-link-button" : "a-link-button-inactive",
@@ -4775,12 +4621,19 @@ Corporation.prototype.updateDivisionContent = function(division) {
                             "production multiplier of your entire Division.");
         }
     }));
-    industryOverviewText.appendChild(createElement("br"));
+    appendLineBreaks(industryOverviewText, 2);
     industryOverviewText.appendChild(createElement("p", {
         display:"inline-block",
         innerText:"Scientific Research: " + formatNumber(division.sciResearch.qty, 3),
         tooltip:"Scientific Research increases the quality of the materials and " +
                 "products that you produce."
+    }));
+    industryOverviewText.appendChild(createElement("div", {
+        class: "help-tip",
+        innerText: "Research",
+        clickListener: () => {
+            division.createResearchBox();
+        }
     }));
 
     //Office and Employee List
@@ -4906,6 +4759,9 @@ Corporation.prototype.clearUI = function() {
     industryWarehouseStateText          = null;
     industryWarehouseMaterials          = null;
     industryWarehouseProducts           = null;
+
+    researchTreeBoxOpened = false;
+    researchTreeBox = null;
 
     companyManagementHeaderTabs = null;
     headerTabs                  = null;
