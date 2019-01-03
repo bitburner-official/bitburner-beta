@@ -59,7 +59,8 @@ var TextHighlightRules = acequire("./text_highlight_rules").TextHighlightRules;
 var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*";
 
 let NetscriptFunctions =
-    "hack|sleep|grow|weaken|growthAnalyze|print|tprint|scan|nuke|brutessh|"    +
+    "hack|hackAnalyzeThreads|hackAnalyzePercent|hackChance|"                   +
+    "sleep|grow|weaken|growthAnalyze|print|tprint|scan|nuke|brutessh|"         +
     "ftpcrack|"                                                                +
     "clearLog|disableLog|enableLog|isLogEnabled|getScriptLogs|"                +
     "relaysmtp|httpworm|sqlinject|run|exec|spawn|kill|killall|exit|"           +
@@ -89,7 +90,7 @@ let NetscriptFunctions =
     "donateToFaction|"                                                         +
     "createProgram|commitCrime|getCrimeChance|getOwnedAugmentations|"          +
     "getOwnedSourceFiles|getAugmentationsFromFaction|"                         +
-    "getAugmentationCost|purchaseAugmentation|"                                +
+    "getAugmentationPrereq|getAugmentationCost|purchaseAugmentation|"          +
     "installAugmentations|"                                                    +
 
     // TIX API

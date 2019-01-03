@@ -408,6 +408,46 @@ function NetscriptFunctions(workerScript) {
                 }
             });
         },
+        hackAnalyzeThreads : function(ip, hackAmount) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("hackAnalyzeThreads", CONSTANTS.ScriptHackAnalyzeRamCost);
+            }
+            updateDynamicRam("hackAnalyzeThreads", CONSTANTS.ScriptHackAnalyzeRamCost);
+
+            // Check argument validity
+            const server = safeGetServer(ip, 'hackAnalyzeThreads');
+            if (isNaN(hackAmount)) {
+                throw makeRuntimeRejectMsg(workerScript, `Invalid growth argument passed into growthAnalyze: ${hackAmount}. Must be numeric`);
+            }
+
+            if (hackAmount < 0 || hackAmount > server.moneyAvailable) {
+                return -1;
+            }
+
+            const percentHacked = calculatePercentMoneyHacked(server);
+
+            return hackAmount / Math.floor(server.moneyAvailable * percentHacked);
+        },
+        hackAnalyzePercent : function(ip) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("hackAnalyzePercent", CONSTANTS.ScriptHackAnalyzeRamCost);
+            }
+            updateDynamicRam("hackAnalyzePercent", CONSTANTS.ScriptHackAnalyzeRamCost);
+
+            const server = safeGetServer(ip, 'hackAnalyzePercent');
+
+            return calculatePercentMoneyHacked(server) * 100;
+        },
+        hackChance : function(ip) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("hackChance", CONSTANTS.ScriptHackAnalyzeRamCost);
+            }
+            updateDynamicRam("hackChance", CONSTANTS.ScriptHackAnalyzeRamCost);
+
+            const server = safeGetServer(ip, 'hackChance');
+
+            return calculateHackingChance(server);
+        },
         sleep : function(time){
             if (workerScript.checkingRam) {return 0;}
             if (time === undefined) {
@@ -2626,7 +2666,7 @@ function NetscriptFunctions(workerScript) {
                     costMult = 20;
                     expMult = 10;
                     break;
-                case Locations.VolhavenMilleniumFitnessGym:
+                case Locations.VolhavenMilleniumFitnessGym.toLowerCase():
                     if (Player.city != Locations.Volhaven) {
                         workerScript.scriptRef.log("ERROR: You cannot workout at Millenium Fitness Gym because you are not in Volhaven. gymWorkout() failed");
                         return false;
@@ -3605,6 +3645,28 @@ function NetscriptFunctions(workerScript) {
                 res.push(fac.augmentations[i]);
             }
             return res;
+        },
+        getAugmentationPrereq : function(name) {
+            var ramCost = CONSTANTS.ScriptSingularityFn3RamCost;
+            if (Player.bitNodeN !== 4) {ramCost *= CONSTANTS.ScriptSingularityFnRamMult;}
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getAugmentationPrereq", ramCost);
+            }
+            updateDynamicRam("getAugmentationPrereq", ramCost);
+            if (Player.bitNodeN != 4) {
+                if (!(hasSingularitySF && singularitySFLvl >= 3)) {
+                    throw makeRuntimeRejectMsg(workerScript, "Cannot run getAugmentationPrereq(). It is a Singularity Function and requires SourceFile-4 (level 3) to run.");
+                    return false;
+                }
+            }
+
+            if (!augmentationExists(name)) {
+                workerScript.scriptRef.log("ERROR: getAugmentationPrereq() failed. Invalid Augmentation name passed in (note: this is case-sensitive): " + name);
+                return [];
+            }
+
+            var aug = Augmentations[name];
+            return aug.prereqs.slice();
         },
         getAugmentationCost : function(name) {
             var ramCost = CONSTANTS.ScriptSingularityFn3RamCost;
