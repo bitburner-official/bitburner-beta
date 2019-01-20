@@ -2,11 +2,13 @@ var sprintf = require('sprintf-js').sprintf,
     vsprintf = require('sprintf-js').vsprintf
 
 import {updateActiveScriptsItems}                   from "./ActiveScriptsUI";
-import {Augmentations, Augmentation,
-        augmentationExists, installAugmentations,
-        AugmentationNames}                          from "./Augmentations";
-import {BitNodeMultipliers}                         from "./BitNodeMultipliers";
-import {determineCrimeSuccess, findCrime}           from "./Crimes";
+import { Augmentation }                             from "./Augmentation/Augmentation";
+import { Augmentations }                            from "./Augmentation/Augmentations";
+import { augmentationExists,
+         installAugmentations }                     from "./Augmentation/AugmentationHelpers";
+import { AugmentationNames }                        from "./Augmentation/data/AugmentationNames";
+import { BitNodeMultipliers }                       from "./BitNode/BitNodeMultipliers";
+import { determineCrimeSuccess, findCrime }         from "./Crime/CrimeHelpers";
 import {Bladeburner}                                from "./Bladeburner";
 import {Company}                                    from "./Company/Company";
 import {Companies, companyExists}                   from "./Company/Companies";
@@ -40,12 +42,12 @@ import {Server, getServer, AddToAllServers,
         GetServerByHostname, numCycleForGrowth}     from "./Server";
 import {Settings}                                   from "./Settings";
 import {SpecialServerIps}                           from "./SpecialServerIps";
-import {Stock}                                      from "./Stock";
+import {Stock}                                      from "./StockMarket/Stock";
 import {StockMarket, StockSymbols, SymbolToStockMap,
         initStockMarket, initSymbolToStockMap, buyStock,
         sellStock, updateStockPlayerPosition,
         shortStock, sellShort, OrderTypes,
-        PositionTypes, placeOrder, cancelOrder}     from "./StockMarket";
+        PositionTypes, placeOrder, cancelOrder}     from "./StockMarket/StockMarket";
 import {post}                                       from "./ui/postToTerminal";
 import {TextFile, getTextFile, createTextFile}      from "./TextFile";
 
@@ -417,7 +419,7 @@ function NetscriptFunctions(workerScript) {
             // Check argument validity
             const server = safeGetServer(ip, 'hackAnalyzeThreads');
             if (isNaN(hackAmount)) {
-                throw makeRuntimeRejectMsg(workerScript, `Invalid growth argument passed into growthAnalyze: ${hackAmount}. Must be numeric`);
+                throw makeRuntimeRejectMsg(workerScript, `Invalid growth argument passed into hackAnalyzeThreads: ${hackAmount}. Must be numeric`);
             }
 
             if (hackAmount < 0 || hackAmount > server.moneyAvailable) {
@@ -1537,6 +1539,22 @@ function NetscriptFunctions(workerScript) {
             }
             return [stock.playerShares, stock.playerAvgPx, stock.playerShortShares, stock.playerAvgShortPx];
         },
+        getStockMaxShares : function(symbol) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getStockMaxShares", CONSTANTS.ScriptGetStockRamCost);
+            }
+            updateDynamicRam("getStockMaxShares", CONSTANTS.ScriptGetStockRamCost);
+
+            if (!Player.hasTixApiAccess) {
+                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getStockMaxShares()");
+            }
+            const stock = SymbolToStockMap[symbol];
+            if (stock == null) {
+                throw makeRuntimeRejectMsg(workerScript, "Invalid stock symbol passed into getStockMaxShares()");
+            }
+
+            return stock.maxShares;
+        },
         buyStock : function(symbol, shares) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("buyStock", CONSTANTS.ScriptBuySellStockRamCost);
@@ -1556,11 +1574,19 @@ function NetscriptFunctions(workerScript) {
             shares = Math.round(shares);
             if (shares === 0) {return 0;}
 
+            // Does player have enough money?
             var totalPrice = stock.price * shares;
             if (Player.money.lt(totalPrice + CONSTANTS.StockMarketCommission)) {
                 workerScript.scriptRef.log("Not enough money to purchase " + formatNumber(shares, 0) + " shares of " +
                                            symbol + ". Need $" +
                                            formatNumber(totalPrice + CONSTANTS.StockMarketCommission, 2).toString());
+                return 0;
+            }
+
+            // Would this purchase exceed the maximum number of shares?
+            if (shares + stock.playerShares + stock.playerShortShares > stock.maxShares) {
+                workerScript.scriptRef.log(`You cannot purchase this many shares. ${stock.symbol} has a maximum of ` +
+                                           `${stock.maxShares} shares.`);
                 return 0;
             }
 
@@ -2878,16 +2904,12 @@ function NetscriptFunctions(workerScript) {
                 }
             }
 
-            var companyPositionTitle = "";
-            if (CompanyPositions[Player.companyPosition] instanceof CompanyPosition) {
-                companyPositionTitle = Player.companyPosition;
-            }
             return {
                 bitnode:            Player.bitNodeN,
                 city:               Player.city,
-                company:            Player.companyName,
                 factions:           Player.factions.slice(),
-                jobTitle:           companyPositionTitle,
+                jobs:               Object.keys(Player.jobs),
+                jobTitles:          Object.values(Player.jobs),
                 mult: {
                     agility:        Player.agility_mult,
                     agilityExp:     Player.agility_exp_mult,
@@ -2968,16 +2990,20 @@ function NetscriptFunctions(workerScript) {
                 }
             }
 
-            const cost = Player.getUpgradeHomeRamCost();
+            // Check if we're at max RAM
+            const homeComputer = Player.getHomeComputer();
+            if (homeComputer.maxRam >= CONSTANTS.HomeComputerMaxRam) {
+                workerScript.log(`ERROR: upgradeHomeRam() failed because your home computer is at max RAM`);
+                return false;
+            }
 
+            const cost = Player.getUpgradeHomeRamCost();
             if (Player.money.lt(cost)) {
                 workerScript.scriptRef.log("ERROR: upgradeHomeRam() failed because you don't have enough money");
                 return false;
             }
 
-            var homeComputer = Player.getHomeComputer();
             homeComputer.maxRam *= 2;
-
             Player.loseMoney(cost);
 
             Player.gainIntelligenceExp(CONSTANTS.IntelligenceSingFnBaseExpGain);
@@ -3002,7 +3028,7 @@ function NetscriptFunctions(workerScript) {
 
             return Player.getUpgradeHomeRamCost();
         },
-        workForCompany : function() {
+        workForCompany : function(companyName) {
             var ramCost = CONSTANTS.ScriptSingularityFn2RamCost;
             if (Player.bitNodeN !== 4) {ramCost *= CONSTANTS.ScriptSingularityFnRamMult;}
             if (workerScript.checkingRam) {
@@ -3016,13 +3042,33 @@ function NetscriptFunctions(workerScript) {
                 }
             }
 
-            if (inMission) {
-                workerScript.scriptRef.log("ERROR: workForCompany() failed because you are in the middle of a mission.");
-                return;
+            // Sanitize input
+            if (companyName == null) {
+                companyName = Player.companyName;
             }
 
-            const companyPosition = CompanyPositions[Player.companyPosition];
-            if (Player.companyPosition === "" || !(companyPosition instanceof CompanyPosition)) {
+            // Make sure its a valid company
+            if (companyName == null || companyName === "" || !(Companies[companyName] instanceof Company)) {
+                workerScript.scriptRef.log(`ERROR: workForCompany() failed because of an invalid company specified: ${companyName}`);
+                return false;
+            }
+
+            // Make sure player is actually employed at the comapny
+            if (!Object.keys(Player.jobs).includes(companyName)) {
+                workerScript.scriptRef.log(`ERROR: workForCompany() failed because you do not have a job at ${companyName}`);
+                return false;
+            }
+
+            // Cant work while in a mission
+            if (inMission) {
+                workerScript.scriptRef.log("ERROR: workForCompany() failed because you are in the middle of a mission.");
+                return false;
+            }
+
+            // Check to make sure company position data is valid
+            const companyPositionName = Player.jobs[companyName];
+            const companyPosition = CompanyPositions[companyPositionName];
+            if (companyPositionName === "" || !(companyPosition instanceof CompanyPosition)) {
                 workerScript.scriptRef.log("ERROR: workForCompany() failed because you do not have a job");
                 return false;
             }
@@ -3035,12 +3081,12 @@ function NetscriptFunctions(workerScript) {
             }
 
             if (companyPosition.isPartTimeJob()) {
-                Player.startWorkPartTime();
+                Player.startWorkPartTime(companyName);
             } else {
-                Player.startWork();
+                Player.startWork(companyName);
             }
             if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.workForCompany == null) {
-                workerScript.log(`Began working at ${Player.companyName} as a ${Player.companyPosition}`);
+                workerScript.log(`Began working at ${Player.companyName} as a ${companyPositionName}`);
             }
             return true;
         },
@@ -3116,7 +3162,7 @@ function NetscriptFunctions(workerScript) {
             }
             if (res) {
                 if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.applyToCompany == null) {
-                    workerScript.log(`You were offered a new job at ${companyName} as a ${Player.companyPosition}`);
+                    workerScript.log(`You were offered a new job at ${companyName} as a ${Player.jobs[companyName]}`);
                 }
             } else {
                 if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.applyToCompany == null) {
@@ -3488,7 +3534,7 @@ function NetscriptFunctions(workerScript) {
                 return false;
             }
 
-            if (!p.create.req()) {
+            if (!p.create.req(Player)) {
                 workerScript.scriptRef.log("ERROR: createProgram() failed because hacking level is too low to create " + p.name + " (level " + p.create.level + " req)");
                 return false
             }
@@ -3554,7 +3600,7 @@ function NetscriptFunctions(workerScript) {
             if(workerScript.disableLogs.ALL == null && workerScript.disableLogs.commitCrime == null) {
                 workerScript.scriptRef.log("Attempting to commit crime: "+crime.name+"...");
             }
-            return crime.commit(1, {workerscript: workerScript});
+            return crime.commit(Player, 1, {workerscript: workerScript});
         },
         getCrimeChance : function(crimeRoughName) {
             var ramCost = CONSTANTS.ScriptSingularityFn3RamCost;

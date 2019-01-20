@@ -16,7 +16,7 @@ import {loadAllRunningScripts}                  from "./Script";
 import {AllServers, loadAllServers}             from "./Server";
 import {Settings}                               from "./Settings";
 import {loadSpecialServerIps, SpecialServerIps} from "./SpecialServerIps";
-import {loadStockMarket, StockMarket}           from "./StockMarket";
+import {loadStockMarket, StockMarket}           from "./StockMarket/StockMarket";
 import {dialogBoxCreate}                        from "../utils/DialogBox";
 import {gameOptionsBoxClose}                    from "../utils/GameOptions";
 import {clearEventListeners}                    from "../utils/uiHelpers/clearEventListeners";
@@ -150,6 +150,16 @@ function evaluateVersionCompatibility(ver) {
                 company.companyPositions = pos;
             }
         }
+    }
+
+    // This version allowed players to hold multiple jobs
+    if (ver < "0.43.0") {
+        if (Player.companyName !== "" && Player.companyPosition != null && Player.companyPosition !== "") {
+            console.log("Copied player's companyName and companyPosition properties to the Player.jobs map for v0.43.0");
+            Player.jobs[Player.companyName] = Player.companyPosition;
+        }
+
+        delete Player.companyPosition;
     }
 }
 

@@ -5,7 +5,7 @@ import {getJobRequirementText}                  from "./Company/GetJobRequiremen
 import * as posNames                            from "./Company/data/CompanyPositionNames";
 import { Corporation }                          from "./Corporation/Corporation";
 import {CONSTANTS}                              from "./Constants";
-import {Crimes}                                 from "./Crimes";
+import { Crimes }                               from "./Crime/Crimes";
 import {Engine}                                 from "./engine";
 import {beginInfiltration}                      from "./Infiltration";
 import {hasBladeburnerSF}                       from "./NetscriptFunctions";
@@ -15,6 +15,7 @@ import {Server, AllServers, AddToAllServers}    from "./Server";
 import {purchaseServer,
         purchaseRamForHomeComputer}             from "./ServerPurchases";
 import {Settings}                               from "./Settings";
+import { SourceFileFlags }                      from "./SourceFile/SourceFileFlags";
 import {SpecialServerNames, SpecialServerIps}   from "./SpecialServerIps";
 
 import {numeralWrapper}                         from "./ui/numeralFormat";
@@ -28,6 +29,12 @@ import {yesNoBoxCreate, yesNoTxtInpBoxCreate,
         yesNoTxtInpBoxGetYesButton, yesNoTxtInpBoxGetNoButton,
         yesNoTxtInpBoxGetInput, yesNoBoxClose,
         yesNoTxtInpBoxClose}                    from "../utils/YesNoBox";
+
+import { createElement }                        from "../utils/uiHelpers/createElement";
+import { createPopup }                          from "../utils/uiHelpers/createPopup";
+import { createPopupCloseButton }               from "../utils/uiHelpers/createPopupCloseButton";
+import { removeElementById }                    from "../utils/uiHelpers/removeElementById";
+
 
 function displayLocationContent() {
     var returnToWorld           = clearEventListeners("location-return-to-world-button");
@@ -114,6 +121,8 @@ function displayLocationContent() {
     var cityHallCreateCorporation   = document.getElementById("location-cityhall-create-corporation");
 
     var nsaBladeburner = document.getElementById("location-nsa-bladeburner");
+
+    const vitalifeResleeve = document.getElementById("location-vitalife-resleeve");
 
     var loc = Player.location;
 
@@ -231,10 +240,11 @@ function displayLocationContent() {
 
     cityHallCreateCorporation.style.display = "none";
     nsaBladeburner.style.display = "none";
+    vitalifeResleeve.style.display = "none";
 
     //Check if the player is employed at this Location. If he is, display the "Work" button,
     //update the job title, etc.
-    if (loc != "" && loc === Player.companyName) {
+    if (loc != "" && Object.keys(Player.jobs).includes(loc)) {
         let company = Companies[loc];
 
         jobTitle.style.display = "block";
@@ -243,7 +253,7 @@ function displayLocationContent() {
         locationTxtDiv1.style.display = "block";
         locationTxtDiv2.style.display = "block";
         locationTxtDiv3.style.display = "block";
-        jobTitle.innerHTML = "Job Title: " + Player.companyPosition;
+        jobTitle.innerHTML = `Job Title: ${Player.jobs[loc]}`;
         let repGain = company.getFavorGain();
         if (repGain.length != 2) {repGain = 0;}
         repGain = repGain[0];
@@ -258,16 +268,16 @@ function displayLocationContent() {
                                  "favor you gain depends on how much reputation you have with the company</span>";
         work.style.display = "block";
 
-        let currPos = CompanyPositions[Player.companyPosition];
+        let currPos = CompanyPositions[Player.jobs[loc]];
         if (currPos == null) {
             throw new Error("Player's companyPosition property has an invalid value");
         }
 
         work.addEventListener("click", function() {
             if (currPos.isPartTimeJob() || currPos.isSoftwareConsultantJob() || currPos.isBusinessConsultantJob()) {
-                Player.startWorkPartTime();
+                Player.startWorkPartTime(loc);
             } else {
-                Player.startWork();
+                Player.startWork(loc);
             }
             return false;
         });
@@ -755,6 +765,10 @@ function displayLocationContent() {
             businessJob.style.display = "block";
             setInfiltrateButton(infiltrate, Locations.NewTokyoVitaLife,
                                 605, 22, 100, 3.5);
+            if (Player.bitNodeN === 10 || SourceFileFlags[10]) {
+                vitalifeResleeve.style.display = "block";
+            }
+
             break;
 
         case Locations.NewTokyoGlobalPharmaceuticals:
@@ -973,18 +987,18 @@ function displayLocationContent() {
         case Locations.NewTokyoSlums:
         case Locations.IshimaSlums:
         case Locations.VolhavenSlums:
-            var shopliftChance = Crimes.Shoplift.successRate();
-            var robStoreChance = Crimes.RobStore.successRate();
-            var mugChance = Crimes.Mug.successRate();
-            var larcenyChance = Crimes.Larceny.successRate();
-            var drugsChance = Crimes.DealDrugs.successRate();
-            var bondChance = Crimes.BondForgery.successRate();
-            var armsChance = Crimes.TraffickArms.successRate();
-            var homicideChance = Crimes.Homicide.successRate();
-            var gtaChance = Crimes.GrandTheftAuto.successRate();
-            var kidnapChance = Crimes.Kidnap.successRate();
-            var assassinateChance = Crimes.Assassination.successRate();
-            var heistChance = Crimes.Heist.successRate();
+            var shopliftChance = Crimes.Shoplift.successRate(Player);
+            var robStoreChance = Crimes.RobStore.successRate(Player);
+            var mugChance = Crimes.Mug.successRate(Player);
+            var larcenyChance = Crimes.Larceny.successRate(Player);
+            var drugsChance = Crimes.DealDrugs.successRate(Player);
+            var bondChance = Crimes.BondForgery.successRate(Player);
+            var armsChance = Crimes.TraffickArms.successRate(Player);
+            var homicideChance = Crimes.Homicide.successRate(Player);
+            var gtaChance = Crimes.GrandTheftAuto.successRate(Player);
+            var kidnapChance = Crimes.Kidnap.successRate(Player);
+            var assassinateChance = Crimes.Assassination.successRate(Player);
+            var heistChance = Crimes.Heist.successRate(Player);
 
             slumsDescText.style.display = "block";
             slumsShoplift.style.display = "block";
@@ -1037,8 +1051,8 @@ function displayLocationContent() {
 
     // Make the "Apply to be Employee and Waiter" texts disappear if you already hold the job
     // Includes part-time stuff
-    if (loc == Player.companyName) {
-        var currPos = Player.companyPosition;
+    if (Object.keys(Player.jobs).includes(loc)) {
+        var currPos = Player.jobs[loc];
 
         if (currPos == "Employee") {
             employeeJob.style.display = "none";
@@ -1628,6 +1642,8 @@ function initLocationButtons() {
 
     var nsaBladeburner = document.getElementById("location-nsa-bladeburner");
 
+    const vitalifeResleeve = document.getElementById("location-vitalife-resleeve");
+
     var hospitalTreatment   = document.getElementById("location-hospital-treatment");
 
     softwareJob.addEventListener("click", function(e) {
@@ -1868,111 +1884,151 @@ function initLocationButtons() {
 
     slumsShoplift.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Shoplift.commit();
+        Crimes.Shoplift.commit(Player);
         return false;
     });
 
     slumsRobStore.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.RobStore.commit();
+        Crimes.RobStore.commit(Player);
         return false;
     });
 
     slumsMug.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Mug.commit();
+        Crimes.Mug.commit(Player);
         return false;
     });
 
     slumsLarceny.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Larceny.commit();
+        Crimes.Larceny.commit(Player);
         return false;
     });
 
     slumsDealDrugs.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.DealDrugs.commit();
+        Crimes.DealDrugs.commit(Player);
         return false;
     });
 
     slumsBondForgery.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.BondForgery.commit();
+        Crimes.BondForgery.commit(Player);
         return false;
     });
 
     slumsTrafficArms.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.TraffickArms.commit();
+        Crimes.TraffickArms.commit(Player);
         return false;
     });
 
     slumsHomicide.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Homicide.commit();
+        Crimes.Homicide.commit(Player);
         return false;
     });
 
     slumsGta.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.GrandTheftAuto.commit();
+        Crimes.GrandTheftAuto.commit(Player);
         return false;
     });
 
     slumsKidnap.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Kidnap.commit();
+        Crimes.Kidnap.commit(Player);
         return false;
     });
 
     slumsAssassinate.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Assassination.commit();
+        Crimes.Assassination.commit(Player);
         return false;
     });
 
     slumsHeist.addEventListener("click", function(e) {
         if (!e.isTrusted) {return false;}
-        Crimes.Heist.commit();
+        Crimes.Heist.commit(Player);
         return false;
     });
 
     cityHallCreateCorporation.addEventListener("click", function() {
-        var yesBtn = yesNoTxtInpBoxGetYesButton(),
-            noBtn = yesNoTxtInpBoxGetNoButton();
-        yesBtn.innerText = "Create Corporation";
-        noBtn.innerText = "Cancel";
-        yesBtn.addEventListener("click", function() {
-            if (Player.money.lt(150e9)) {
-                dialogBoxCreate("You don't have enough money to create a corporation! You need $150b");
-                return yesNoTxtInpBoxClose();
-            }
-            Player.loseMoney(150e9);
-            var companyName = yesNoTxtInpBoxGetInput();
-            if (companyName == null || companyName == "") {
-                dialogBoxCreate("Invalid company name!");
+        const popupId = "create-corporation-popup";
+        const txt = createElement("p", {
+            innerHTML: "Would you like to start a corporation? This will require $150b for registration " +
+                       "and initial funding. This $150b can either be self-funded, or you can obtain " +
+                       "the seed money from the government in exchange for 500 million shares<br><br>" +
+                       "If you would like to start one, please enter a name for your corporation below:",
+        });
+
+        const nameInput = createElement("input", {
+            placeholder: "Corporation Name",
+        });
+
+        const selfFundedButton = createElement("button", {
+            class: "popup-box-button",
+            innerText: "Self-Fund",
+            clickListener: () => {
+                if (Player.money.lt(150e9)) {
+                    dialogBoxCreate("You don't have enough money to create a corporation! You need $150b");
+                    return false;
+                }
+                Player.loseMoney(150e9);
+
+                const companyName = nameInput.value;
+                if (companyName == null || companyName == "") {
+                    dialogBoxCreate("Invalid company name!");
+                    return false;
+                }
+
+                Player.corporation = new Corporation({
+                    name: companyName,
+                });
+
+                displayLocationContent();
+                document.getElementById("world-menu-header").click();
+                document.getElementById("world-menu-header").click();
+                dialogBoxCreate("Congratulations! You just self-funded your own corporation. You can visit " +
+                                "and manage your company in the City");
+                removeElementById(popupId);
                 return false;
             }
-            Player.corporation = new Corporation({
-                name:companyName,
-            });
-            displayLocationContent();
-            document.getElementById("world-menu-header").click();
-            document.getElementById("world-menu-header").click();
-            dialogBoxCreate("Congratulations! You just started your own corporation. You can visit " +
-                            "and manage your company in the City");
-            return yesNoTxtInpBoxClose();
         });
-        noBtn.addEventListener("click", function() {
-            return yesNoTxtInpBoxClose();
-        });
+
+        const seedMoneyButton = createElement("button", {
+            class: "popup-box-button",
+            innerText: "Use Seed Money",
+            clickListener: () => {
+                const companyName = nameInput.value;
+                if (companyName == null || companyName == "") {
+                    dialogBoxCreate("Invalid company name!");
+                    return false;
+                }
+
+                Player.corporation = new Corporation({
+                    name: companyName,
+                });
+                Player.corporation.totalShares += 500e6;
+
+                displayLocationContent();
+                document.getElementById("world-menu-header").click();
+                document.getElementById("world-menu-header").click();
+                dialogBoxCreate("Congratulations! You just started your own corporation with government seed money. " +
+                                "You can visit and manage your company in the City");
+                removeElementById(popupId);
+                return false;
+            }
+        })
+
+        const cancelBtn = createPopupCloseButton(popupId, { class: "popup-box-button" });
+
         if (Player.corporation instanceof Corporation) {
             return;
         } else {
-            yesNoTxtInpBoxCreate("Would you like to start a corporation? This will require $150b " +
-                                 "for registration and initial funding.<br><br>If so, please enter " +
-                                 "a name for your corporation below:");
+            createPopup(popupId, [txt, nameInput, cancelBtn, selfFundedButton, seedMoneyButton]);
+            nameInput.focus();
         }
     });
 
@@ -1993,6 +2049,10 @@ function initLocationButtons() {
                 dialogBoxCreate("Rejected! Please apply again when you have 100 of each combat stat (str, def, dex, agi)");
             }
         }
+    });
+
+    vitalifeResleeve.addEventListener("click", function() {
+        Engine.loadResleevingContent();
     });
 
     hospitalTreatment.addEventListener("click", function(e) {

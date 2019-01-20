@@ -39,6 +39,21 @@ class NumeralFormatter {
         if (Math.abs(n) < 1e-6) { n = 0; }
         return numeral(n).format(format);
     }
+
+    formatBigNumber(n: number): string {
+        return this.format(n, "0.000a");
+    }
+
+    formatMoney(n: number): string {
+        return this.format(n, "$0.000a");
+    }
+
+    formatPercentage(n: number, decimalPlaces: number=2): string {
+        const formatter: string = "0." + "0".repeat(decimalPlaces) + "%";
+        return this.format(n, formatter);
+    }
+
+
 }
 
 export const numeralWrapper = new NumeralFormatter();

@@ -1,4 +1,4 @@
-import { AugmentationNames }        from "./Augmentations";
+import { AugmentationNames }        from "./Augmentation/data/AugmentationNames";
 import { generateRandomContract }   from "./CodingContractGenerator";
 import { Programs }                 from "./Programs/Programs";
 import { Factions }                 from "./Faction/Factions";
@@ -6,8 +6,8 @@ import { Player }                   from "./Player";
 import { AllServers }               from "./Server";
 import { hackWorldDaemon }          from "./RedPill";
 import { StockMarket,
-         SymbolToStockMap }         from "./StockMarket";
-import { Stock }                    from "./Stock";
+         SymbolToStockMap }         from "./StockMarket/StockMarket";
+import { Stock }                    from "./StockMarket/Stock";
 import { Terminal }                 from "./Terminal";
 import { numeralWrapper }           from "./ui/numeralFormat";
 import { dialogBoxCreate }          from "../utils/DialogBox";
