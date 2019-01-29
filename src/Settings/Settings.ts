@@ -1,5 +1,8 @@
-import { ISelfInitializer, ISelfLoading } from "./types";
-import { OwnedAugmentationsOrderSetting, PurchaseAugmentationsOrderSetting } from "./SettingEnums";
+import { ISelfInitializer, ISelfLoading } from "../types";
+import { CodeMirrorThemeSetting,
+         EditorSetting,
+         OwnedAugmentationsOrderSetting,
+         PurchaseAugmentationsOrderSetting } from "./SettingEnums";
 
 /**
  * Represents the default settings the player could customize.
@@ -66,6 +69,11 @@ interface IDefaultSettings {
  */
 interface ISettings extends IDefaultSettings {
     /**
+     * Which editor should be used (CodeMirror or Ace)?
+     */
+    Editor: EditorSetting;
+
+    /**
      * The keybinding to use in the script editor.
      * TODO: This should really be an enum of allowed values.
      */
@@ -75,7 +83,7 @@ interface ISettings extends IDefaultSettings {
      * The theme used in the script editor.
      * TODO: This should really be an enum of allowed values.
      */
-    EditorTheme: string;
+    EditorTheme: string | CodeMirrorThemeSetting;
 
     /**
      * What order the player's owned Augmentations/Source Files should be displayed in
@@ -110,6 +118,7 @@ export const Settings: ISettings & ISelfInitializer & ISelfLoading = {
     AutosaveInterval:                    defaultSettings.AutosaveInterval,
     CodeInstructionRunTime:              25,
     DisableHotkeys:                      defaultSettings.DisableHotkeys,
+    Editor:                              EditorSetting.Ace,
     EditorKeybinding:                    "ace",
     EditorTheme:                         "Monokai",
     Locale:                              "en",
