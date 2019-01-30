@@ -33,8 +33,12 @@
     }
     const sanitizedText = splitText.join("\n");
 
+    // Configure JSHINT options
     if (!options.indent) // JSHint error.character actually is a column index, this fixes underlining on lines using tabs for indentation
       options.indent = 1; // JSHint default value is 4
+
+    options.esversion = 6;
+
     JSHINT(sanitizedText, options, options.globals);
     var errors = JSHINT.data().errors, result = [];
     if (errors) parseErrors(errors, result);
