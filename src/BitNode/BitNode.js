@@ -56,7 +56,6 @@ function initBitNodes() {
                                           "The price and reputation cost of all Augmentations is tripled<br>" +
                                           "The starting and maximum amount of money on servers is reduced by 75%<br>" +
                                           "Server growth rate is reduced by 80%<br>" +
-                                          "You will start out with $150b so that you can start your corporation<br>" +
                                           "You now only need 75 favour with a faction in order to donate to it, rather than 150<br><br>" +
                                           "Destroying this BitNode will give you Source-File 3, or if you already have this Source-File it will " +
                                           "upgrade its level up to a maximum of 3. This Source-File lets you create corporations on other BitNodes (although " +
@@ -168,7 +167,7 @@ function initBitNodes() {
                                             "In this BitNode:<br><br>" +
                                             "Your stats are significantly decreased.<br>" +
                                             "All methods of gaining money are half as profitable (except Stock Market)<br>" +
-                                            "Purchased servers are more expensive, have less max RAM, and a lower maximum limit<br>" + 
+                                            "Purchased servers are more expensive, have less max RAM, and a lower maximum limit<br>" +
                                             "Augmentations are 5x as expensive and require twice as much reputation<br><br>" +
                                             "Destroying this BitNode will give you Source-File 10, or if you already have this Source-File it will " +
                                             "upgrade its level up to a maximum of 3. This Source-File unlocks Sleeve technology in other BitNodes. " +
@@ -341,6 +340,7 @@ function initBitNodeMultipliers() {
             BitNodeMultipliers.PurchasedServerCost = 5;
             BitNodeMultipliers.PurchasedServerLimit = 0.6;
             BitNodeMultipliers.PurchasedServerMaxRam = 0.5;
+            break;
         case 11: //The Big Crash
             BitNodeMultipliers.ServerMaxMoney           = 0.1;
             BitNodeMultipliers.ServerStartingMoney      = 0.1;
@@ -364,6 +364,11 @@ function initBitNodeMultipliers() {
             var inc = Math.pow(1.02, sf12Lvl);
             var dec = 1/inc;
             BitNodeMultipliers.HackingLevelMultiplier = dec;
+            BitNodeMultipliers.StrengthLevelMultiplier = dec;
+            BitNodeMultipliers.DefenseLevelMultiplier = dec;
+            BitNodeMultipliers.DexterityLevelMultiplier = dec;
+            BitNodeMultipliers.AgilityLevelMultiplier = dec;
+            BitNodeMultipliers.CharismaLevelMultiplier = dec;
 
             BitNodeMultipliers.ServerMaxMoney         = dec;
             BitNodeMultipliers.ServerStartingMoney    = dec;
@@ -372,6 +377,10 @@ function initBitNodeMultipliers() {
 
             //Does not scale, otherwise security might start at 300+
             BitNodeMultipliers.ServerStartingSecurity = 1.5;
+
+            BitNodeMultipliers.PurchasedServerCost      = inc;
+            BitNodeMultipliers.PurchasedServerLimit     = dec;
+            BitNodeMultipliers.PurchasedServerMaxRam    = dec;
 
             BitNodeMultipliers.ManualHackMoney  = dec;
             BitNodeMultipliers.ScriptHackMoney  = dec;
