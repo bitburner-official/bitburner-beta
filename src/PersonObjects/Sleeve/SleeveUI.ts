@@ -106,10 +106,12 @@ export function createSleevesPage(p: IPlayer) {
             }
         });
 
-        UIElems.docButton = createElement("button", {
+        UIElems.docButton = createElement("a", {
             class: "std-button",
             display: "inline-block",
+            href: "https://bitburner.readthedocs.io/en/latest/advancedgameplay/sleeves.html#duplicate-sleeves",
             innerText: "Documentation",
+            target: "_blank",
         });
 
         UIElems.sleeveList = createElement("ul");
@@ -124,6 +126,7 @@ export function createSleevesPage(p: IPlayer) {
 
         UIElems.container.appendChild(UIElems.info);
         UIElems.container.appendChild(UIElems.faqButton);
+        UIElems.container.appendChild(UIElems.docButton);
         UIElems.container.appendChild(UIElems.sleeveList);
 
         document.getElementById("entire-game-container")!.appendChild(UIElems.container);
@@ -717,7 +720,7 @@ function updateSleeveTaskDescription(sleeve: Sleeve, elems: ISleeveUIElems): voi
                 elems.taskDescription!.innerText = `This sleeve is currently doing ${detailValue2} for ${sleeve.currentTaskLocation}.`;
                 break;
             case "Commit Crime":
-                elems.taskDescription!.innerText = `This sleeve is currently attempting to ${Crimes[detailValue].type} (Success Rate: ${numeralWrapper.formatPercentage(Crimes[detailValue].successRate(playerRef))}).`;
+                elems.taskDescription!.innerText = `This sleeve is currently attempting to ${Crimes[detailValue].type} (Success Rate: ${numeralWrapper.formatPercentage(Crimes[detailValue].successRate(sleeve))}).`;
                 break;
             case "Take University Course":
                 elems.taskDescription!.innerText = `This sleeve is currently studying/taking a course at ${sleeve.currentTaskLocation}.`;

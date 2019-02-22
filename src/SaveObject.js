@@ -17,11 +17,14 @@ import {AllServers, loadAllServers}             from "./Server";
 import {Settings}                               from "./Settings/Settings";
 import {loadSpecialServerIps, SpecialServerIps} from "./SpecialServerIps";
 import {loadStockMarket, StockMarket}           from "./StockMarket/StockMarket";
+import { setTimeoutRef }                        from "./utils/SetTimeoutRef";
+
 import {dialogBoxCreate}                        from "../utils/DialogBox";
 import {gameOptionsBoxClose}                    from "../utils/GameOptions";
 import {clearEventListeners}                    from "../utils/uiHelpers/clearEventListeners";
 import {Reviver, Generic_toJSON,
         Generic_fromJSON}                       from "../utils/JSONReviver";
+import { convertTimeMsToTimeElapsedString }     from "../utils/StringHelperFunctions";
 import {createElement}                          from "../utils/uiHelpers/createElement";
 import {createPopup}                            from "../utils/uiHelpers/createPopup";
 import {createStatusText}                       from "./ui/createStatusText";
@@ -290,8 +293,6 @@ function loadImportedGame(saveObj, saveString) {
 
         //Parse Decimal.js objects
         tempPlayer.money = new Decimal(tempPlayer.money);
-        tempPlayer.total_money = new Decimal(tempPlayer.total_money);
-        tempPlayer.lifetime_money = new Decimal(tempPlayer.lifetime_money);
 
         tempAllServers          = JSON.parse(tempSaveObj.AllServersSave, Reviver);
         tempCompanies           = JSON.parse(tempSaveObj.CompaniesSave, Reviver);
@@ -509,9 +510,11 @@ function loadImportedGame(saveObj, saveString) {
 
     Player.lastUpdate = Engine._lastUpdate;
     Engine.start();                 //Run main game loop and Scripts loop
-    dialogBoxCreate("While you were offline, your scripts generated <span class='money-gold'>$" +
-                    numeralWrapper.format(offlineProductionFromScripts, '0,0.00') + "</span> and your Hacknet Nodes generated <span class='money-gold'>$" +
-                    numeralWrapper.format(offlineProductionFromHacknetNodes, '0,0.00') + "</span>");
+    const timeOfflineString = convertTimeMsToTimeElapsedString(time);
+    dialogBoxCreate(`Offline for ${timeOfflineString}. While you were offline, your scripts ` +
+                    "generated <span class='money-gold'>" +
+                    numeralWrapper.formatMoney(offlineProductionFromScripts) + "</span> and your Hacknet Nodes generated <span class='money-gold'>" +
+                    numeralWrapper.formatMoney(offlineProductionFromHacknetNodes) + "</span>");
     return true;
 }
 
@@ -543,7 +546,7 @@ BitburnerSaveObject.prototype.exportGame = function() {
         a.download = "bitburnerSave.json";
         document.body.appendChild(a);
         a.click();
-        setTimeout(function() {
+        setTimeoutRef(function() {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         }, 0);

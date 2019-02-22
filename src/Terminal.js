@@ -35,6 +35,7 @@ import {Settings}                           from "./Settings/Settings";
 import {SpecialServerIps,
         SpecialServerNames}                 from "./SpecialServerIps";
 import {getTextFile}                        from "./TextFile";
+import { setTimeoutRef }                    from "./utils/SetTimeoutRef";
 import {containsAllStrings,
         longestCommonStart}                 from "../utils/StringHelperFunctions";
 import {Page, routing}                      from "./ui/navigationTracking";
@@ -128,7 +129,7 @@ $(document).keydown(function(event) {
             }
             var prevCommand = Terminal.commandHistory[Terminal.commandHistoryIndex];
             terminalInput.value = prevCommand;
-            setTimeout(function(){terminalInput.selectionStart = terminalInput.selectionEnd = 10000; }, 0);
+            setTimeoutRef(function(){terminalInput.selectionStart = terminalInput.selectionEnd = 10000; }, 0);
         }
 
         if (event.keyCode === KEY.DOWNARROW ||
@@ -613,7 +614,7 @@ let Terminal = {
                     break;
             }
         } catch(e) {
-            console.log("Exception in Terminal.modifyInput: " + e);
+            console.error("Exception in Terminal.modifyInput: " + e);
         }
     },
 
@@ -659,11 +660,11 @@ let Terminal = {
                     terminalInput.setSelectionRange(inputLength, inputLength);
                     break;
                 default:
-                    console.log("WARNING: Invalid loc argument in Terminal.moveTextCursor()");
+                    console.warn("Invalid loc argument in Terminal.moveTextCursor()");
                     break;
             }
         } catch(e) {
-            console.log("Exception in Terminal.moveTextCursor: " + e);
+            console.error("Exception in Terminal.moveTextCursor: " + e);
         }
     },
 
@@ -709,7 +710,6 @@ let Terminal = {
 			//Calculate whether hack was successful
 			var hackChance = calculateHackingChance(server);
 			var rand = Math.random();
-			console.log("Hack success chance: " + hackChance +  ", rand: " + rand);
 			var expGainedOnSuccess = calculateHackingExpGain(server);
 			var expGainedOnFailure = (expGainedOnSuccess / 4);
 			if (rand < hackChance) {	//Success!
@@ -729,6 +729,7 @@ let Terminal = {
 
 				server.moneyAvailable -= moneyGained;
 				Player.gainMoney(moneyGained);
+                Player.recordMoneySource(moneyGained, "hacking");
                 Player.gainHackingExp(expGainedOnSuccess)
                 Player.gainIntelligenceExp(expGainedOnSuccess / CONSTANTS.IntelligenceTerminalHackBaseExpGain);
 
@@ -913,8 +914,7 @@ let Terminal = {
                 args.push(arg);
             }
         }
-        console.log("Terminal console command parsing returned:");
-        console.log(args);
+
         return args;
     },
 
@@ -1022,7 +1022,7 @@ let Terminal = {
             case iTutorialSteps.TerminalRunScript:
                 if (commandArray.length == 2 &&
                     commandArray[0] == "run" && commandArray[1] == "foodnstuff.script") {
-                    Terminal.runScript("foodnstuff.script");
+                    Terminal.runScript(commandArray);
                     iTutorialNextStep();
                 } else {post("Bad command. Please follow the tutorial");}
                 break;
@@ -1407,7 +1407,7 @@ let Terminal = {
                     } else if (executableName.endsWith(".cct")) {
                         Terminal.runContract(executableName);
 					} else {
-                        Terminal.runProgram(executableName);
+                        Terminal.runProgram(commandArray);
 					}
 				}
 				break;
@@ -1613,7 +1613,6 @@ let Terminal = {
 	},
 
     connectToServer: function(ip) {
-        console.log("Connect to server called");
         var serv = getServer(ip);
         if (serv == null) {
             post("Invalid server. Connection failed.");
@@ -1908,7 +1907,7 @@ let Terminal = {
         }
         const scriptname = commandArray[1];
         if (!scriptname.endsWith(".lit") && !isScriptFilename(scriptname) && !scriptname.endsWith(".txt")) {
-            postError("scp only works for .script, .txt, and .lit files");
+            postError("scp only works for scripts, text files (.txt), and literature files (.lit)");
             return;
         }
         const destServer = getServer(commandArray[2]);
@@ -1996,30 +1995,27 @@ let Terminal = {
 
 	//First called when the "run [program]" command is called. Checks to see if you
 	//have the executable and, if you do, calls the executeProgram() function
-	runProgram: function(programName) {
-		//Check if you have the program on your computer. If you do, execute it, otherwise
-		//display an error message
-        var splitArgs = programName.split(" ");
-        var name = " ";
-        if (splitArgs.length > 1) {
-            name = splitArgs[0];
-        } else {
-            name = programName;
-        }
-        if (Player.hasProgram(name)) {
-            Terminal.executeProgram(programName);
+	runProgram: function(commandArray) {
+        if (commandArray.length < 2) { return; }
+
+		// Check if you have the program on your computer. If you do, execute it, otherwise
+		// display an error message
+        const programName = commandArray[1];
+
+        if (Player.hasProgram(programName)) {
+            Terminal.executeProgram(commandArray);
             return;
         }
 		post("ERROR: No such executable on home computer (Only programs that exist on your home computer can be run)");
 	},
 
 	//Contains the implementations of all possible programs
-	executeProgram: function(programName) {
+	executeProgram: function(commandArray) {
+        if (commandArray.length < 2) { return; }
+
         var s = Player.getCurrentServer();
-        var splitArgs = programName.split(" ");
-        if (splitArgs.length > 1) {
-            programName = splitArgs[0];
-        }
+        const programName = commandArray[1];
+        const splitArgs = commandArray.slice(1);
 
         // TODO: refactor this/these out of Terminal. This logic could reside closer to the Programs themselves.
         /**
@@ -2161,7 +2157,6 @@ let Terminal = {
             yesBtn.innerHTML = "Travel to BitNode Nexus";
             noBtn.innerHTML = "Cancel";
             yesBtn.addEventListener("click", function() {
-                console.log("yesBtn event listener");
                 hackWorldDaemon(Player.bitNodeN, true);
                 return yesNoBoxClose();
             });
@@ -2286,7 +2281,6 @@ let Terminal = {
                 break;
         }
         Terminal.contractOpen = false;
-        console.log(Terminal.contractOpen);
     },
 };
 
