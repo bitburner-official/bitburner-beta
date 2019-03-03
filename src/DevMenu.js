@@ -3,6 +3,8 @@ import { CodingContractTypes }          from "./CodingContracts";
 import { generateContract,
          generateRandomContract,
          generateRandomContractOnHome } from "./CodingContractGenerator";
+import { Companies }                    from "./Company/Companies";
+import { Company }                      from "./Company/Company";
 import { Programs }                     from "./Programs/Programs";
 import { Factions }                     from "./Faction/Factions";
 import { Player }                       from "./Player";
@@ -48,6 +50,15 @@ export function createDevMenu() {
         display: "block",
         innerText: "Add $1000t",
     });
+
+    const addMoney2 = createElement("button", {
+        class: "std-button",
+        clickListener: () => {
+            Player.gainMoney(1e12);
+        },
+        display: "block",
+        innerText: "Add $1t",
+    })
 
     const addRam = createElement("button", {
         class: "std-button",
@@ -265,7 +276,19 @@ export function createDevMenu() {
             Player.queueAugmentation(augmentationsDropdown.options[augmentationsDropdown.selectedIndex].value);
         },
         innerText: "Queue Augmentation",
-    })
+    });
+
+    const giveAllAugmentationsButton = createElement("button", {
+        class: "std-button",
+        clickListener: () => {
+            for (const i in AugmentationNames) {
+                const augName = AugmentationNames[i];
+                Player.queueAugmentation(augName);
+            }
+        },
+        display: "block",
+        innerText: "Queue All Augmentations",
+    });
 
     // Source Files
     const sourceFilesHeader = createElement("h2", { innerText: "Source-Files" });
@@ -371,6 +394,38 @@ export function createDevMenu() {
             Terminal.connectToServer(host);
         },
         innerText: "Connect to server",
+    });
+
+    // Companies
+    const companiesHeader = createElement("h2", { innerText: "Companies" });
+
+    const companiesDropdown = createElement("select", {
+        class: "dropdown",
+        margin: "5px",
+    });
+    for (const c in Companies) {
+        companiesDropdown.add(createOptionElement(Companies[c].name));
+    }
+
+    const companyReputationInput = createElement("input", {
+        margin: "5px",
+        placeholder: "Rep to add to company",
+        type: "number",
+    });
+
+    const companyReputationButton = createElement("button", {
+        class: "std-button",
+        innerText: "Add rep to company",
+        clickListener: () => {
+            const compName = getSelectText(companiesDropdown);
+            const company = Companies[compName];
+            const rep = parseFloat(companyReputationInput.value);
+            if (company != null && !isNaN(rep)) {
+                company.playerReputation += rep;
+            } else {
+                console.warn(`Invalid input for Dev Menu Company Rep. Company Name: ${compName}. Rep: ${rep}`);
+            }
+        }
     });
 
     // Bladeburner
@@ -542,6 +597,20 @@ export function createDevMenu() {
         innerText: "View Stock Price Caps",
     });
 
+    // Sleeves
+    const sleevesHeader = createElement("h2", { innerText: "Sleeves" });
+
+    const sleevesRemoveAllShockRecovery = createElement("button", {
+        class: "std-button",
+        display: "block",
+        innerText: "Set Shock Recovery of All Sleeves to 0",
+        clickListener: () => {
+            for (let i = 0; i < Player.sleeves.length; ++i) {
+                Player.sleeves[i].shock = 100;
+            }
+        }
+    });
+
     // Add everything to container, then append to main menu
     const devMenuContainer = createElement("div", {
         class: "generic-menupage-container",
@@ -551,6 +620,7 @@ export function createDevMenu() {
     devMenuContainer.appendChild(devMenuText);
     devMenuContainer.appendChild(genericHeader);
     devMenuContainer.appendChild(addMoney);
+    devMenuContainer.appendChild(addMoney2);
     devMenuContainer.appendChild(addRam);
     devMenuContainer.appendChild(triggerBitflume);
     devMenuContainer.appendChild(destroyCurrentBitnode);
@@ -587,6 +657,7 @@ export function createDevMenu() {
     devMenuContainer.appendChild(augmentationsHeader);
     devMenuContainer.appendChild(augmentationsDropdown);
     devMenuContainer.appendChild(augmentationsQueueButton);
+    devMenuContainer.appendChild(giveAllAugmentationsButton);
     devMenuContainer.appendChild(sourceFilesHeader);
     devMenuContainer.appendChild(removeSourceFileDropdown);
     devMenuContainer.appendChild(removeSourceFileButton);
@@ -599,6 +670,11 @@ export function createDevMenu() {
     devMenuContainer.appendChild(serversMaxMoneyAll);
     devMenuContainer.appendChild(serversConnectToDropdown);
     devMenuContainer.appendChild(serversConnectToButton);
+    devMenuContainer.appendChild(companiesHeader);
+    devMenuContainer.appendChild(companiesDropdown);
+    devMenuContainer.appendChild(createElement("br"));
+    devMenuContainer.appendChild(companyReputationInput);
+    devMenuContainer.appendChild(companyReputationButton);
     devMenuContainer.appendChild(bladeburnerHeader);
     devMenuContainer.appendChild(bladeburnerGainRankInput);
     devMenuContainer.appendChild(bladeburnerGainRankButton);
@@ -622,6 +698,8 @@ export function createDevMenu() {
     devMenuContainer.appendChild(stockPriceChangeBtn);
     devMenuContainer.appendChild(createElement("br"));
     devMenuContainer.appendChild(stockViewPriceCapBtn);
+    devMenuContainer.appendChild(sleevesHeader);
+    devMenuContainer.appendChild(sleevesRemoveAllShockRecovery);
 
    const entireGameContainer = document.getElementById("entire-game-container");
    if (entireGameContainer == null) {

@@ -32,48 +32,52 @@ import { removeElement }                            from "../utils/uiHelpers/rem
 import { removeElementById }                        from "../utils/uiHelpers/removeElementById";
 
 
-var CityNames = ["Aevum", "Chongqing", "Sector-12", "New Tokyo", "Ishima", "Volhaven"];
+const CityNames = ["Aevum", "Chongqing", "Sector-12", "New Tokyo", "Ishima", "Volhaven"];
 
-var CyclesPerSecond             = 5;   //Game cycle is 200 ms
+const CyclesPerSecond             = 5;   //Game cycle is 200 ms
 
-var StaminaGainPerSecond        = 0.0085;
-var BaseStaminaLoss             = 0.285; //Base stamina loss per action. Increased based on difficulty
-var MaxStaminaToGainFactor      = 70000; //Max Stamina is divided by this to get bonus stamina gain
+const StaminaGainPerSecond        = 0.0085;
+const BaseStaminaLoss             = 0.285; //Base stamina loss per action. Increased based on difficulty
+const MaxStaminaToGainFactor      = 70000; //Max Stamina is divided by this to get bonus stamina gain
 
-var DifficultyToTimeFactor      = 10;  //Action Difficulty divided by this to get base action time
+const DifficultyToTimeFactor      = 10;  //Action Difficulty divided by this to get base action time
 
 //The difficulty multiplier affects stamina loss and hp loss of an action. Also affects
 //experience gain. Its formula is:
 //difficulty ^ exponentialFactor + difficulty / linearFactor
-var DiffMultExponentialFactor   = 0.28;
-var DiffMultLinearFactor        = 650;
+const DiffMultExponentialFactor     = 0.28;
+const DiffMultLinearFactor          = 650;
 
 // These factors are used to calculate action time.
 // They affect how much action time is reduced based on your agility and dexterity
-var EffAgiLinearFactor          = 38e3;
-var EffDexLinearFactor          = 38e3;
-var EffAgiExponentialFactor     = 0.033;
-var EffDexExponentialFactor     = 0.03;
+const EffAgiLinearFactor            = 10e3;
+const EffDexLinearFactor            = 10e3;
+const EffAgiExponentialFactor       = 0.04;
+const EffDexExponentialFactor       = 0.035;
 
-var BaseRecruitmentTimeNeeded   = 300; //Base time needed (s) to complete a Recruitment action
+const BaseRecruitmentTimeNeeded     = 300; //Base time needed (s) to complete a Recruitment action
 
-var PopulationThreshold         = 1e9; //Population at which success rates start being affected
-var ChaosThreshold              = 50; //City chaos level after which it starts making tasks harder
+const PopulationThreshold           = 1e9; // Population which determines baseline success rate
+const PopulationExponent            = 0.7; // Exponent that influences how different populations affect success rate
+const ChaosThreshold                = 50; //City chaos level after which it starts making tasks harder
 
-var BaseStatGain                = 1;     //Base stat gain per second
-var BaseIntGain                 = 0.001; //Base intelligence stat gain
+const BaseStatGain                  = 1;     //Base stat gain per second
+const BaseIntGain                   = 0.001; //Base intelligence stat gain
 
-var ActionCountGrowthPeriod     = 300; //Time (s) it takes for action count to grow by its specified value
+const ActionCountGrowthPeriod       = 480; //Time (s) it takes for action count to grow by its specified value
 
-var RankToFactionRepFactor      = 2; //Delta Faction Rep = this * Delta Rank
-var RankNeededForFaction        = 25;
+const RankToFactionRepFactor        = 2; //Delta Faction Rep = this * Delta Rank
+const RankNeededForFaction          = 25;
 
-var ContractSuccessesPerLevel   = 3; //How many successes you need to level up a contract
-var OperationSuccessesPerLevel  = 2.5; //How many successes you need to level up an op
+const ContractSuccessesPerLevel     = 3; //How many successes you need to level up a contract
+const OperationSuccessesPerLevel    = 2.5; //How many successes you need to level up an op
 
-var RanksPerSkillPoint          = 3.5;  //How many ranks needed to get 1 Skill Point
+const RanksPerSkillPoint            = 3;  //How many ranks needed to get 1 Skill Point
 
-var ContractBaseMoneyGain       = 50e3; //Base Money Gained per contract
+const ContractBaseMoneyGain         = 250e3; //Base Money Gained per contract
+
+const HrcHpGain         = 2;    // HP gained from Hyperbolic Regeneration Chamber
+const HrcStaminaGain    = 0.1; // Stamina gained from Hyperbolic Regeneration Chamber
 
 //DOM related variables
 var ActiveActionCssClass        = "bladeburner-active-action";
@@ -494,9 +498,9 @@ Action.prototype.getSuccessChance = function(inst, params={}) {
     if (!(this instanceof BlackOperation)) {
         var city = inst.getCurrentCity();
         if (params.est) {
-            competence *= (city.popEst / PopulationThreshold);
+            competence *= Math.pow((city.popEst / PopulationThreshold), PopulationExponent);
         } else {
-            competence *= (city.pop / PopulationThreshold);
+            competence *= Math.pow((city.pop / PopulationThreshold), PopulationExponent);
         }
 
         //Too high of a chaos results in lower chances
@@ -1404,7 +1408,6 @@ Bladeburner.prototype.completeAction = function() {
             break;
         case ActionTypes["Diplomacy"]:
             var eff = this.getDiplomacyEffectiveness();
-            console.log(`Diplomacy Effectiveness: ${eff}`);
             this.getCurrentCity().chaos *= eff;
             if (this.getCurrentCity().chaos < 0) { this.getCurrentCity().chaos = 0; }
             if (this.logging.general) {
@@ -1413,9 +1416,12 @@ Bladeburner.prototype.completeAction = function() {
             this.startAction(this.action); // Repeat Action
             break;
         case ActionTypes["Hyperbolic Regeneration Chamber"]:
-            Player.regenerateHp(1);
-            this.stamina += 0.05; // TODO Turn this into a const and adjust value
+            Player.regenerateHp(HrcHpGain);
+            this.stamina = Math.max(this.maxStamina, this.stamina + HrcStaminaGain); // TODO Turn this into a const and adjust value
             this.startAction(this.action);
+            if (this.logging.general) {
+                this.log(`Rested in Hyperbolic Regeneration Chamber. Restored ${HrcHpGain} HP and gained ${HrcStaminaGain} stamina`);
+            }
             break;
         default:
             console.error(`Bladeburner.completeAction() called for invalid action: ${this.action.type}`);
@@ -1541,8 +1547,8 @@ Bladeburner.prototype.getRecruitmentSuccessChance = function() {
 
 Bladeburner.prototype.getDiplomacyEffectiveness = function() {
     // Returns a decimal by which the city's chaos level should be multiplied (e.g. 0.98)
-    const CharismaLinearFactor = 5e3;
-    const CharismaExponentialFactor = 0.04;
+    const CharismaLinearFactor = 1e3;
+    const CharismaExponentialFactor = 0.045;
 
     const charismaEff = Math.pow(Player.charisma, CharismaExponentialFactor) + Player.charisma / CharismaLinearFactor;
     return (100 - charismaEff) / 100;
@@ -1650,7 +1656,7 @@ Bladeburner.prototype.randomEvent = function() {
         }
     } else if (chance <= 0.9) {
         //Less Synthoids, 20%
-        var percentage = getRandomInt(5, 20) / 100;
+        var percentage = getRandomInt(8, 20) / 100;
         var count = Math.round(sourceCity.pop * percentage);
         sourceCity.pop -= count;
         if (this.logging.events) {
@@ -3876,7 +3882,7 @@ function initBladeburner() {
         name:SkillNames.EvasiveSystem,
         desc:"Each level of this skill increases your effective " +
              "dexterity and agility for Bladeburner actions by 4%",
-        baseCost: 2, costInc: 1.2,
+        baseCost: 2, costInc: 2.1,
         effDex: 4, effAgi: 4
     });
     Skills[SkillNames.Datamancer] = new Skill({

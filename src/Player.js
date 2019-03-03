@@ -281,7 +281,7 @@ PlayerObject.prototype.prestigeAugmentation = function() {
 
     for (let i = 0; i < this.sleeves.length; ++i) {
         if (this.sleeves[i] instanceof Sleeve) {
-            this.sleeves[i].resetTaskStatus();
+            this.sleeves[i].shockRecovery(this);
         }
     }
 
@@ -372,7 +372,7 @@ PlayerObject.prototype.prestigeSourceFile = function() {
     // Duplicate sleeves are reset to level 1 every Bit Node (but the number of sleeves you have persists)
     this.sleeves.length = SourceFileFlags[10] + this.sleevesFromCovenant;
     for (let i = 0; i < this.sleeves.length; ++i) {
-        this.sleeves[i] = new Sleeve();
+        this.sleeves[i] = new Sleeve(this);
     }
 
     this.isWorking = false;
@@ -562,6 +562,14 @@ PlayerObject.prototype.canAfford = function(cost) {
 }
 
 PlayerObject.prototype.recordMoneySource = function(amt, source) {
+    if (!(this.moneySourceA instanceof MoneySourceTracker)) {
+        console.warn(`Player.moneySourceA was not properly initialized. Resetting`);
+        this.moneySourceA = new MoneySourceTracker();
+    }
+    if (!(this.moneySourceB instanceof MoneySourceTracker)) {
+        console.warn(`Player.moneySourceB was not properly initialized. Resetting`);
+        this.moneySourceB = new MoneySourceTracker();
+    }
     this.moneySourceA.record(amt, source);
     this.moneySourceB.record(amt, source);
 }
@@ -2043,14 +2051,26 @@ PlayerObject.prototype.checkForFactionInvitations = function() {
 
     var numAugmentations = this.augmentations.length;
 
-    var company = Companies[this.companyName];
-    var companyRep = 0;
-    if (company != null) {
-        companyRep = company.playerReputation;
-    }
-
     const allCompanies = Object.keys(this.jobs);
     const allPositions = Object.values(this.jobs);
+
+    // Given a company name, safely returns the reputation (returns 0 if invalid company is specified)
+    function getCompanyRep(companyName) {
+        const company = Companies[companyName];
+        if (company == null) {
+            return 0;
+        } else {
+            return company.playerReputation;
+        }
+    }
+
+    // Helper function that returns a boolean indicating whether the Player meets
+    // the requirements for the specified company. There are two requirements:
+    //      1. High enough reputation
+    //      2. Player is employed at the company
+    function checkMegacorpRequirements(companyName, repNeeded=CONSTANTS.CorpFactionRepRequirement) {
+        return allCompanies.includes(companyName) && (getCompanyRep(companyName) > repNeeded);
+    }
 
     //Illuminati
     var illuminatiFac = Factions["Illuminati"];
@@ -2090,14 +2110,14 @@ PlayerObject.prototype.checkForFactionInvitations = function() {
     //ECorp
     var ecorpFac = Factions["ECorp"];
     if (!ecorpFac.isBanned && !ecorpFac.isMember && !ecorpFac.alreadyInvited &&
-        allCompanies.includes(Locations.AevumECorp) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.AevumECorp)) {
         invitedFactions.push(ecorpFac);
     }
 
     //MegaCorp
     var megacorpFac = Factions["MegaCorp"];
     if (!megacorpFac.isBanned && !megacorpFac.isMember && !megacorpFac.alreadyInvited &&
-        allCompanies.includes(Locations.Sector12MegaCorp) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.Sector12MegaCorp)) {
         invitedFactions.push(megacorpFac);
     }
 
@@ -2105,42 +2125,42 @@ PlayerObject.prototype.checkForFactionInvitations = function() {
     var bachmanandassociatesFac = Factions["Bachman & Associates"];
     if (!bachmanandassociatesFac.isBanned && !bachmanandassociatesFac.isMember &&
         !bachmanandassociatesFac.alreadyInvited &&
-        allCompanies.includes(Locations.AevumBachmanAndAssociates) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.AevumBachmanAndAssociates)) {
         invitedFactions.push(bachmanandassociatesFac);
     }
 
     //Blade Industries
     var bladeindustriesFac = Factions["Blade Industries"];
     if (!bladeindustriesFac.isBanned && !bladeindustriesFac.isMember && !bladeindustriesFac.alreadyInvited &&
-        allCompanies.includes(Locations.Sector12BladeIndustries) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.Sector12BladeIndustries)) {
         invitedFactions.push(bladeindustriesFac);
     }
 
     //NWO
     var nwoFac = Factions["NWO"];
     if (!nwoFac.isBanned && !nwoFac.isMember && !nwoFac.alreadyInvited &&
-        allCompanies.includes(Locations.VolhavenNWO) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.VolhavenNWO)) {
         invitedFactions.push(nwoFac);
     }
 
     //Clarke Incorporated
     var clarkeincorporatedFac = Factions["Clarke Incorporated"];
     if (!clarkeincorporatedFac.isBanned && !clarkeincorporatedFac.isMember && !clarkeincorporatedFac.alreadyInvited &&
-        allCompanies.includes(Locations.AevumClarkeIncorporated) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.AevumClarkeIncorporated)) {
         invitedFactions.push(clarkeincorporatedFac);
     }
 
     //OmniTek Incorporated
     var omnitekincorporatedFac = Factions["OmniTek Incorporated"];
     if (!omnitekincorporatedFac.isBanned && !omnitekincorporatedFac.isMember && !omnitekincorporatedFac.alreadyInvited &&
-        allCompanies.includes(Locations.VolhavenOmniTekIncorporated) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.VolhavenOmniTekIncorporated)) {
         invitedFactions.push(omnitekincorporatedFac);
     }
 
     //Four Sigma
     var foursigmaFac = Factions["Four Sigma"];
     if (!foursigmaFac.isBanned && !foursigmaFac.isMember && !foursigmaFac.alreadyInvited &&
-        allCompanies.includes(Locations.Sector12FourSigma) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.Sector12FourSigma)) {
         invitedFactions.push(foursigmaFac);
     }
 
@@ -2148,7 +2168,7 @@ PlayerObject.prototype.checkForFactionInvitations = function() {
     var kuaigonginternationalFac = Factions["KuaiGong International"];
     if (!kuaigonginternationalFac.isBanned && !kuaigonginternationalFac.isMember &&
         !kuaigonginternationalFac.alreadyInvited &&
-        allCompanies.includes(Locations.ChongqingKuaiGongInternational) && companyRep >= CONSTANTS.CorpFactionRepRequirement) {
+        checkMegacorpRequirements(Locations.ChongqingKuaiGongInternational)) {
         invitedFactions.push(kuaigonginternationalFac);
     }
 
@@ -2161,7 +2181,7 @@ PlayerObject.prototype.checkForFactionInvitations = function() {
         if (!fulcrumsecrettechonologiesFac.isBanned && !fulcrumsecrettechonologiesFac.isMember &&
             !fulcrumsecrettechonologiesFac.alreadyInvited &&
             fulcrumSecretServer.manuallyHacked &&
-            allCompanies.includes(Locations.AevumFulcrumTechnologies) && companyRep >= 250000) {
+            checkMegacorpRequirements(Locations.AevumFulcrumTechnologies, 250e3)) {
             invitedFactions.push(fulcrumsecrettechonologiesFac);
         }
     }

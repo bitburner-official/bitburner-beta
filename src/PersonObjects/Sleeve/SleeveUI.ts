@@ -1,6 +1,7 @@
 /**
  * Module for handling the Sleeve UI
  */
+import { createSleevePurchaseAugsPopup } from "./SleeveAugmentationsUI";
 import { Sleeve } from "./Sleeve";
 import { SleeveTaskType } from "./SleeveTaskTypesEnum";
 import { SleeveFaq } from "./data/SleeveFaq";
@@ -44,6 +45,7 @@ interface ISleeveUIElems {
     stats:                  HTMLElement | null;
     moreStatsButton:        HTMLElement | null;
     travelButton:           HTMLElement | null;
+    purchaseAugsButton:     HTMLElement | null;
     taskPanel:              HTMLElement | null;
     taskSelector:           HTMLSelectElement | null;
     taskDetailsSelector:    HTMLSelectElement | null;
@@ -171,6 +173,7 @@ function createSleeveUi(sleeve: Sleeve, allSleeves: Sleeve[]): ISleeveUIElems {
         stats:                  null,
         moreStatsButton:        null,
         travelButton:           null,
+        purchaseAugsButton:     null,
         taskPanel:              null,
         taskSelector:           null,
         taskDetailsSelector:    null,
@@ -267,10 +270,22 @@ function createSleeveUi(sleeve: Sleeve, allSleeves: Sleeve[]): ISleeveUIElems {
 
             createPopup(popupId, popupArguments);
         }
-    })
+    });
+    elems.purchaseAugsButton = createElement("button", {
+        class: "std-button",
+        display: "block",
+        innerText: "Manage Augmentations",
+        clickListener: () => {
+            createSleevePurchaseAugsPopup(sleeve, playerRef!);
+        }
+    });
     elems.statsPanel.appendChild(elems.stats);
     elems.statsPanel.appendChild(elems.moreStatsButton);
     elems.statsPanel.appendChild(elems.travelButton);
+    if (sleeve.shock >= 100) {
+        // You can only buy augs when shock recovery is 0
+        elems.statsPanel.appendChild(elems.purchaseAugsButton);
+    }
 
     elems.taskPanel = createElement("div", { class: "sleeve-panel", width: "40%" });
     elems.taskSelector = createElement("select") as HTMLSelectElement;
@@ -655,14 +670,11 @@ function setSleeveTask(sleeve: Sleeve, elems: ISleeveUIElems): boolean {
                 res = sleeve.workoutAtGym(playerRef!, detailValue2, detailValue);
                 break;
             case "Shock Recovery":
-                sleeve.finishTask(playerRef!);
                 sleeve.currentTask = SleeveTaskType.Recovery;
-                res = true;
+                res = sleeve.shockRecovery(playerRef!);
                 break;
             case "Synchronize":
-                sleeve.finishTask(playerRef!);
-                sleeve.currentTask = SleeveTaskType.Sync;
-                res = true;
+                res = sleeve.synchronize(playerRef!);
                 break;
             default:
                 console.error(`Invalid/Unrecognized taskValue in setSleeveTask(): ${taskValue}`);
