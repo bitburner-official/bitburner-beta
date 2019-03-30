@@ -31,6 +31,7 @@ import { numeralWrapper } from "../../ui/numeralFormat";
 
 import { dialogBoxCreate } from "../../../utils/DialogBox";
 
+import { getRandomInt } from "../../../utils/helpers/getRandomInt";
 import { KEY } from "../../../utils/helpers/keyCodes";
 
 import { clearSelector } from "../../../utils/uiHelpers/clearSelector";
@@ -348,7 +349,7 @@ export class CorporationEventHandler {
                 clickListener:()=>{
                     mat.exp.splice(i, 1); //Remove export object
                     removeElementById(popupId);
-                    createExportPopup();
+                    createExportMaterialPopup(mat);
                 }
             }));
             })(i, mat, currExports);
@@ -780,7 +781,12 @@ export class CorporationEventHandler {
             useTa2AutoSaleDiv.appendChild(useTa2AutoSaleLabel);
             useTa2AutoSaleDiv.appendChild(useTa2AutoSaleCheckbox);
 
-            createPopup(popupId, [ta1, useTa1AutoSaleDiv, ta2Text, ta2Input, useTa2AutoSaleDiv, closeBtn]);
+            const ta2OverridesTa1 = createElement("p", {
+                innerText: "Note that Market-TA.II overrides Market-TA.I. This means that if " +
+                           "both are enabled, then Market-TA.II will take effect, not Market-TA.I"
+            });
+
+            createPopup(popupId, [ta1, useTa1AutoSaleDiv, ta2Text, ta2Input, useTa2AutoSaleDiv, ta2OverridesTa1, closeBtn]);
         } else {
             // Market-TA.I only
             createPopup(popupId, [ta1, useTa1AutoSaleDiv, closeBtn]);
@@ -1052,7 +1058,12 @@ export class CorporationEventHandler {
             useTa2AutoSaleDiv.appendChild(useTa2AutoSaleLabel);
             useTa2AutoSaleDiv.appendChild(useTa2AutoSaleCheckbox);
 
-            createPopup(popupId, [ta1, useTa1AutoSaleDiv, ta2Text, ta2Input, useTa2AutoSaleDiv, closeBtn]);
+            const ta2OverridesTa1 = createElement("p", {
+                innerText: "Note that Market-TA.II overrides Market-TA.I. This means that if " +
+                           "both are enabled, then Market-TA.II will take effect, not Market-TA.I"
+            });
+
+            createPopup(popupId, [ta1, useTa1AutoSaleDiv, ta2Text, ta2Input, useTa2AutoSaleDiv, ta2OverridesTa1, closeBtn]);
         } else {
             // Market-TA.I only
             createPopup(popupId, [ta1, useTa1AutoSaleDiv, closeBtn]);

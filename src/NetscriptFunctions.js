@@ -29,8 +29,14 @@ import { Factions,
 import { joinFaction,
          purchaseAugmentation }                     from "./Faction/FactionHelpers";
 import { FactionWorkType }                          from "./Faction/FactionWorkTypeEnum";
+import { netscriptCanGrow,
+         netscriptCanHack,
+         netscriptCanWeaken }                       from "./Hacking/netscriptCanHack";
+
 import { getCostOfNextHacknetNode,
-         purchaseHacknet }                          from "./HacknetNode";
+         getCostOfNextHacknetServer,
+         hasHacknetServers,
+         purchaseHacknet }                          from "./Hacknet/HacknetHelpers";
 import {Locations}                                  from "./Locations";
 import { Message }                                  from "./Message/Message";
 import { Messages }                                 from "./Message/MessageHelpers";
@@ -73,7 +79,8 @@ import {WorkerScript, workerScripts,
 import {makeRuntimeRejectMsg, netscriptDelay,
         runScriptFromScript}                        from "./NetscriptEvaluator";
 import {NetscriptPort}                              from "./NetscriptPort";
-import {SleeveTaskType}                             from "./PersonObjects/Sleeve/SleeveTaskTypesEnum"
+import { SleeveTaskType }                           from "./PersonObjects/Sleeve/SleeveTaskTypesEnum";
+import { findSleevePurchasableAugs }                from "./PersonObjects/Sleeve/Sleeve";
 
 import {Page, routing}                              from "./ui/navigationTracking";
 import {numeralWrapper}                             from "./ui/numeralFormat";
@@ -193,11 +200,11 @@ function initSingularitySFFlags() {
 }
 
 function NetscriptFunctions(workerScript) {
-    var updateDynamicRam = function(fnName, ramCost) {
+    const updateDynamicRam = function(fnName, ramCost) {
         if (workerScript.dynamicLoadedFns[fnName]) {return;}
         workerScript.dynamicLoadedFns[fnName] = true;
 
-        const threads = workerScript.scriptRef.threads;
+        let threads = workerScript.scriptRef.threads;
         if (typeof threads !== 'number') {
             console.warn(`WorkerScript detected NaN for threadcount for ${workerScript.name} on ${workerScript.serverIp}`);
             threads = 1;
@@ -214,7 +221,7 @@ function NetscriptFunctions(workerScript) {
         }
     };
 
-    var updateStaticRam = function(fnName, ramCost) {
+    const updateStaticRam = function(fnName, ramCost) {
         if (workerScript.loadedFns[fnName]) {
             return 0;
         } else {
@@ -229,7 +236,7 @@ function NetscriptFunctions(workerScript) {
      * @param {string} Hostname or IP of the server
      * @returns {Server} The specified Server
      */
-    var safeGetServer = function(ip, callingFnName="") {
+    const safeGetServer = function(ip, callingFnName="") {
         var server = getServer(ip);
         if (server == null) {
             throw makeRuntimeRejectMsg(workerScript, `Invalid IP or hostname passed into ${callingFnName}() function`);
@@ -238,17 +245,27 @@ function NetscriptFunctions(workerScript) {
     }
 
     // Utility function to get Hacknet Node object
-    var getHacknetNode = function(i) {
+    const getHacknetNode = function(i) {
         if (isNaN(i)) {
             throw makeRuntimeRejectMsg(workerScript, "Invalid index specified for Hacknet Node: " + i);
         }
         if (i < 0 || i >= Player.hacknetNodes.length) {
             throw makeRuntimeRejectMsg(workerScript, "Index specified for Hacknet Node is out-of-bounds: " + i);
         }
-        return Player.hacknetNodes[i];
+
+        if (hasHacknetServers()) {
+            const hserver = AllServers[Player.hacknetNodes[i]];
+            if (hserver == null) {
+                throw makeRuntimeRejectMsg(workerScript, `Could not get Hacknet Server for index ${i}. This is probably a bug, please report to game dev`);
+            }
+
+            return hserver;
+        } else {
+            return Player.hacknetNodes[i];
+        }
     };
 
-    var getCodingContract = function(fn, ip) {
+    const getCodingContract = function(fn, ip) {
         var server = safeGetServer(ip, "getCodingContract");
         return server.getContract(fn);
     }
@@ -262,43 +279,68 @@ function NetscriptFunctions(workerScript) {
                 return purchaseHacknet();
             },
             getPurchaseNodeCost : function() {
-                return getCostOfNextHacknetNode();
+                if (hasHacknetServers()) {
+                    return getCostOfNextHacknetServer();
+                } else {
+                    return getCostOfNextHacknetNode();
+                }
             },
             getNodeStats : function(i) {
-                var node = getHacknetNode(i);
-                return {
+                const node = getHacknetNode(i);
+                const hasUpgraded = hasHacknetServers();
+                const res = {
                     name:               node.name,
                     level:              node.level,
-                    ram:                node.ram,
+                    ram:                hasUpgraded ? node.maxRam : node.ram,
                     cores:              node.cores,
-                    production:         node.moneyGainRatePerSecond,
+                    production:         hasUpgraded ? node.hashRate : node.moneyGainRatePerSecond,
                     timeOnline:         node.onlineTimeSeconds,
-                    totalProduction:    node.totalMoneyGenerated,
+                    totalProduction:    hasUpgraded ? node.totalHashesGenerated : node.totalMoneyGenerated,
                 };
+
+                if (hasUpgraded) {
+                    res.cache = node.cache;
+                }
+
+                return res;
             },
             upgradeLevel : function(i, n) {
-                var node = getHacknetNode(i);
-                return node.purchaseLevelUpgrade(n);
+                const node = getHacknetNode(i);
+                return node.purchaseLevelUpgrade(n, Player);
             },
             upgradeRam : function(i, n) {
-                var node = getHacknetNode(i);
-                return node.purchaseRamUpgrade(n);
+                const node = getHacknetNode(i);
+                return node.purchaseRamUpgrade(n, Player);
             },
             upgradeCore : function(i, n) {
-                var node = getHacknetNode(i);
-                return node.purchaseCoreUpgrade(n);
+                const node = getHacknetNode(i);
+                return node.purchaseCoreUpgrade(n, Player);
+            },
+            upgradeCache : function(i, n) {
+                if (!hasHacknetServers()) { return false; }
+                const node = getHacknetNode(i);
+                const res = node.purchaseCacheUpgrade(n, Player);
+                if (res) {
+                    Player.hashManager.updateCapacity(Player);
+                }
+                return res;
             },
             getLevelUpgradeCost : function(i, n) {
-                var node = getHacknetNode(i);
-                return node.calculateLevelUpgradeCost(n);
+                const node = getHacknetNode(i);
+                return node.calculateLevelUpgradeCost(n, Player);
             },
             getRamUpgradeCost : function(i, n) {
-                var node = getHacknetNode(i);
-                return node.calculateRamUpgradeCost(n);
+                const node = getHacknetNode(i);
+                return node.calculateRamUpgradeCost(n, Player);
             },
             getCoreUpgradeCost : function(i, n) {
-                var node = getHacknetNode(i);
-                return node.calculateCoreUpgradeCost(n);
+                const node = getHacknetNode(i);
+                return node.calculateCoreUpgradeCost(n, Player);
+            },
+            getCacheUpgradeCost : function(i, n) {
+                if (!hasHacknetServers()) { return Infinity; }
+                const node = getHacknetNode(i);
+                return node.calculateCacheUpgradeCost(n);
             }
         },
         sprintf : sprintf,
@@ -350,19 +392,16 @@ function NetscriptFunctions(workerScript) {
             var hackingTime = calculateHackingTime(server); //This is in seconds
 
             //No root access or skill level too low
-            if (server.hasAdminRights == false) {
-                workerScript.scriptRef.log("Cannot hack this server (" + server.hostname + ") because user does not have root access");
-                throw makeRuntimeRejectMsg(workerScript, "Cannot hack this server (" + server.hostname + ") because user does not have root access");
-            }
-
-            if (server.requiredHackingSkill > Player.hacking_skill) {
-                workerScript.scriptRef.log("Cannot hack this server (" + server.hostname + ") because user's hacking skill is not high enough");
-                throw makeRuntimeRejectMsg(workerScript, "Cannot hack this server (" + server.hostname + ") because user's hacking skill is not high enough");
+            const canHack = netscriptCanHack(server, Player);
+            if (!canHack.res) {
+                workerScript.scriptRef.log(`ERROR: ${canHack.msg}`);
+                throw makeRuntimeRejectMsg(workerScript, canHack.msg);
             }
 
             if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.hack == null) {
                 workerScript.scriptRef.log("Attempting to hack " + ip + " in " + hackingTime.toFixed(3) + " seconds (t=" + threads + ")");
             }
+
             return netscriptDelay(hackingTime * 1000, workerScript).then(function() {
                 if (workerScript.env.stopFlag) {return Promise.reject(workerScript);}
                 var hackChance = calculateHackingChance(server);
@@ -481,9 +520,10 @@ function NetscriptFunctions(workerScript) {
             }
 
             //No root access or skill level too low
-            if (server.hasAdminRights == false) {
-                workerScript.scriptRef.log("Cannot grow this server (" + server.hostname + ") because user does not have root access");
-                throw makeRuntimeRejectMsg(workerScript, "Cannot grow this server (" + server.hostname + ") because user does not have root access");
+            const canHack = netscriptCanGrow(server);
+            if (!canHack.res) {
+                workerScript.scriptRef.log(`ERROR: ${canHack.msg}`);
+                throw makeRuntimeRejectMsg(workerScript, canHack.msg);
             }
 
             var growTime = calculateGrowTime(server);
@@ -542,9 +582,10 @@ function NetscriptFunctions(workerScript) {
             }
 
             //No root access or skill level too low
-            if (server.hasAdminRights == false) {
-                workerScript.scriptRef.log("Cannot weaken this server (" + server.hostname + ") because user does not have root access");
-                throw makeRuntimeRejectMsg(workerScript, "Cannot weaken this server (" + server.hostname + ") because user does not have root access");
+            const canHack = netscriptCanWeaken(server);
+            if (!canHack.res) {
+                workerScript.scriptRef.log(`ERROR: ${canHack.msg}`);
+                throw makeRuntimeRejectMsg(workerScript, canHack.msg);
             }
 
             var weakenTime = calculateWeakenTime(server);
@@ -4910,6 +4951,16 @@ function NetscriptFunctions(workerScript) {
                     return false;
                 }
 
+                // Cannot work at the same company that another sleeve is working at
+                for (let i = 0; i < Player.sleeves.length; ++i) {
+                    if (i === sleeveNumber) { continue; }
+                    const other = Player.sleeves[i];
+                    if (other.currentTask === SleeveTaskType.Company && other.currentTaskLocation === companyName) {
+                        workerScript.log(`ERROR: sleeve.setToCompanyWork() failed for Sleeve ${sleeveNumber} because Sleeve ${i} is doing the same task`);
+                        return false;
+                    }
+                }
+
                 return Player.sleeves[sleeveNumber].workForCompany(Player, companyName);
             },
             setToFactionWork : function(sleeveNumber=0, factionName="", workType="") {
@@ -4923,6 +4974,16 @@ function NetscriptFunctions(workerScript) {
                 if (sleeveNumber >= Player.sleeves.length || sleeveNumber < 0) {
                     workerScript.log(`ERROR: sleeve.setToFactionWork(${sleeveNumber}) failed because it is an invalid sleeve number.`);
                     return false;
+                }
+
+                // Cannot work at the same faction that another sleeve is working at
+                for (let i = 0; i < Player.sleeves.length; ++i) {
+                    if (i === sleeveNumber) { continue; }
+                    const other = Player.sleeves[i];
+                    if (other.currentTask === SleeveTaskType.Faction && other.currentTaskLocation === factionName) {
+                        workerScript.log(`ERROR: sleeve.setToFactionWork() failed for Sleeve ${sleeveNumber} because Sleeve ${i} is doing the same task`);
+                        return false;
+                    }
                 }
 
                 return Player.sleeves[sleeveNumber].workForFaction(Player, factionName, workType);
@@ -4955,9 +5016,9 @@ function NetscriptFunctions(workerScript) {
                     return false;
                 }
 
-                const sl = Player.sleeves[i];
+                const sl = Player.sleeves[sleeveNumber];
                 return {
-                    shock: sl.shock,
+                    shock: 100 - sl.shock,
                     sync: sl.sync,
                     hacking_skill: sl.hacking_skill,
                     strength: sl.strength,
@@ -5060,6 +5121,70 @@ function NetscriptFunctions(workerScript) {
                     workRepGain:     sl.getRepGain(),
                 }
             },
+            getSleeveAugmentations : function(sleeveNumber=0) {
+                if (workerScript.checkingRam) {
+                    return updateStaticRam("getSleeveAugmentations", CONSTANTS.ScriptSleeveBaseRamCost);
+                }
+                if (Player.bitNodeN !== 10 && !SourceFileFlags[10]) {
+                    throw makeRuntimeRejectMsg(workerScript, "getSleeveAugmentations() failed because you do not currently have access to the Sleeve API. This is either because you are not in BitNode-10 or because you do not have Source-File 10");
+                }
+                updateDynamicRam("getSleeveAugmentations", CONSTANTS.ScriptSleeveBaseRamCost);
+                if (sleeveNumber >= Player.sleeves.length || sleeveNumber < 0) {
+                    workerScript.log(`ERROR: sleeve.getSleeveAugmentations(${sleeveNumber}) failed because it is an invalid sleeve number.`);
+                    return [];
+                }
+
+                const augs = [];
+                for (let i = 0; i < Player.sleeves[sleeveNumber].augmentations.length; i++) {
+                    augs.push(Player.sleeves[sleeveNumber].augmentations[i].name);
+                }
+                return augs;
+            },
+            getSleevePurchasableAugs : function(sleeveNumber=0) {
+                if (workerScript.checkingRam) {
+                    return updateStaticRam("getSleevePurchasableAugs", CONSTANTS.ScriptSleeveBaseRamCost);
+                }
+                if (Player.bitNodeN !== 10 && !SourceFileFlags[10]) {
+                    throw makeRuntimeRejectMsg(workerScript, "getSleevePurchasableAugs() failed because you do not currently have access to the Sleeve API. This is either because you are not in BitNode-10 or because you do not have Source-File 10");
+                }
+                updateDynamicRam("getSleevePurchasableAugs", CONSTANTS.ScriptSleeveBaseRamCost);
+                if (sleeveNumber >= Player.sleeves.length || sleeveNumber < 0) {
+                    workerScript.log(`ERROR: sleeve.getSleevePurchasableAugs(${sleeveNumber}) failed because it is an invalid sleeve number.`);
+                    return [];
+                }
+
+                const purchasableAugs = findSleevePurchasableAugs(Player.sleeves[sleeveNumber], Player);
+                const augs = [];
+                for (let i = 0; i < purchasableAugs.length; i++) {
+                    const aug = purchasableAugs[i];
+                    augs.push({
+                        name: aug.name,
+                        cost: aug.startingCost,
+                    });
+                }
+
+                return augs;
+            },
+            purchaseSleeveAug : function(sleeveNumber=0, augName="") {
+                if (workerScript.checkingRam) {
+                    return updateStaticRam("purchaseSleeveAug", CONSTANTS.ScriptSleeveBaseRamCost);
+                }
+                if (Player.bitNodeN !== 10 && !SourceFileFlags[10]) {
+                    throw makeRuntimeRejectMsg(workerScript, "purchaseSleeveAug() failed because you do not currently have access to the Sleeve API. This is either because you are not in BitNode-10 or because you do not have Source-File 10");
+                }
+                updateDynamicRam("purchaseSleeveAug", CONSTANTS.ScriptSleeveBaseRamCost);
+                if (sleeveNumber >= Player.sleeves.length || sleeveNumber < 0) {
+                    workerScript.log(`ERROR: sleeve.purchaseSleeveAug(${sleeveNumber}) failed because it is an invalid sleeve number.`);
+                    return false;
+                }
+
+                const aug = Augmentations[augName];
+                if (!aug) {
+                    workerScript.log(`ERROR: sleeve.purchaseSleeveAug(${sleeveNumber}) failed because ${augName} is not a valid aug.`);
+                }
+
+                return Player.sleeves[sleeveNumber].tryBuyAugmentation(Player, aug);
+            }
         } // End sleeve
     } //End return
 } //End NetscriptFunction()
