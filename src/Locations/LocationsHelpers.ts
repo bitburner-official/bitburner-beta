@@ -108,7 +108,7 @@ export function createPurchaseServerPopup(ram: number, p: IPlayer) {
  * Create a popup that lets the player start a Corporation
  */
 export function createStartCorporationPopup(p: IPlayer) {
-    if (!p.canAccessCorporation() || p.hasCorporation) { return; }
+    if (!p.canAccessCorporation() || p.hasCorporation()) { return; }
 
     const popupId = "create-corporation-popup";
     const txt = createElement("p", {
@@ -261,6 +261,10 @@ export function createUpgradeHomeRamPopup(p: IPlayer) {
  * @param p - Player object
  */
 export function purchaseTorRouter(p: IPlayer) {
+    if (p.hasTorRouter()) {
+        dialogBoxCreate(`You already have a TOR Router`);
+        return;
+    }
     if (!p.canAfford(CONSTANTS.TorRouterCost)) {
         dialogBoxCreate("You cannot afford to purchase the Tor router");
         return;

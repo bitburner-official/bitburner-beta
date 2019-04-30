@@ -1,57 +1,69 @@
-import {deleteActiveScriptsItem}                from "./ActiveScriptsUI";
-import { Augmentations }                        from "./Augmentation/Augmentations";
-import { augmentationExists,
-         initAugmentations }                    from "./Augmentation/AugmentationHelpers";
-import { AugmentationNames }                    from "./Augmentation/data/AugmentationNames";
-import { initBitNodeMultipliers }               from "./BitNode/BitNode";
-import {Bladeburner}                            from "./Bladeburner";
-import {writeCinematicText}                     from "./CinematicText";
-import {Companies, initCompanies}               from "./Company/Companies";
-import { resetIndustryResearchTrees }           from "./Corporation/IndustryData";
-import { Programs }                             from "./Programs/Programs";
-import {Engine}                                 from "./engine";
-import { Faction }                              from "./Faction/Faction";
-import { Factions,
-         initFactions }                         from "./Faction/Factions";
-import { joinFaction }                          from "./Faction/FactionHelpers";
-import {deleteGangDisplayContent}               from "./Gang";
-import { Message }                              from "./Message/Message";
-import { initMessages,
-         Messages }                             from "./Message/MessageHelpers";
-import {initSingularitySFFlags, hasWallStreetSF}from "./NetscriptFunctions";
-import {WorkerScript, workerScripts,
-        prestigeWorkerScripts}                  from "./NetscriptWorker";
-import {Player}                                 from "./Player";
+import { deleteActiveScriptsItem } from "./ActiveScriptsUI";
+import { Augmentations } from "./Augmentation/Augmentations";
+import {
+    augmentationExists,
+    initAugmentations
+} from "./Augmentation/AugmentationHelpers";
+import { AugmentationNames } from "./Augmentation/data/AugmentationNames";
+import { initBitNodeMultipliers } from "./BitNode/BitNode";
+import { Bladeburner } from "./Bladeburner";
+import { writeCinematicText } from "./CinematicText";
+import { Companies, initCompanies } from "./Company/Companies";
+import { resetIndustryResearchTrees } from "./Corporation/IndustryData";
+import { Programs } from "./Programs/Programs";
+import { Engine } from "./engine";
+import { Faction } from "./Faction/Faction";
+import { Factions, initFactions } from "./Faction/Factions";
+import { joinFaction } from "./Faction/FactionHelpers";
+import { deleteGangDisplayContent } from "./Gang";
+import { Message } from "./Message/Message";
+import { initMessages, Messages } from "./Message/MessageHelpers";
+import { initSingularitySFFlags, hasWallStreetSF } from "./NetscriptFunctions";
+import {
+    WorkerScript,
+    workerScripts,
+    prestigeWorkerScripts
+} from "./NetscriptWorker";
+import { Player } from "./Player";
 
-import { AllServers,
-         AddToAllServers,
-         initForeignServers,
-         prestigeAllServers }                   from "./Server/AllServers";
-import { Server }                               from "./Server/Server"
-import { prestigeHomeComputer }                 from "./Server/ServerHelpers";
-import { SourceFileFlags,
-         updateSourceFileFlags }                from "./SourceFile/SourceFileFlags";
-import { SpecialServerIps,
-         SpecialServerIpsMap,
-         prestigeSpecialServerIps,
-         SpecialServerNames}                    from "./Server/SpecialServerIps";
-import {initStockMarket, initSymbolToStockMap,
-        stockMarketContentCreated,
-        setStockMarketContentCreated}           from "./StockMarket/StockMarket";
-import {Terminal, postNetburnerText}            from "./Terminal";
+import {
+    AllServers,
+    AddToAllServers,
+    initForeignServers,
+    prestigeAllServers
+} from "./Server/AllServers";
+import { Server } from "./Server/Server";
+import { prestigeHomeComputer } from "./Server/ServerHelpers";
+import {
+    SourceFileFlags,
+    updateSourceFileFlags
+} from "./SourceFile/SourceFileFlags";
+import {
+    SpecialServerIps,
+    SpecialServerIpsMap,
+    prestigeSpecialServerIps,
+    SpecialServerNames
+} from "./Server/SpecialServerIps";
+import {
+    deleteStockMarket,
+    initStockMarket,
+    initSymbolToStockMap,
+} from "./StockMarket/StockMarket";
+import { Terminal, postNetburnerText } from "./Terminal";
 
-import {Page, routing}                          from "./ui/navigationTracking";
+import { Page, routing } from "./ui/navigationTracking";
 
-import Decimal                                  from "decimal.js";
-import {dialogBoxCreate}                        from "../utils/DialogBox";
-import {removeElementById}                      from "../utils/uiHelpers/removeElementById";
-import {createElement}                          from "../utils/uiHelpers/createElement";
-import {createPopup}                            from "../utils/uiHelpers/createPopup";
-import {exceptionAlert}                         from "../utils/helpers/exceptionAlert";
+import { dialogBoxCreate } from "../utils/DialogBox";
+import { exceptionAlert } from "../utils/helpers/exceptionAlert";
+import { removeElementById } from "../utils/uiHelpers/removeElementById";
+import { createElement } from "../utils/uiHelpers/createElement";
+import { createPopup } from "../utils/uiHelpers/createPopup";
 
-let BitNode8StartingMoney = 250e6;
+import Decimal from "decimal.js";
 
-//Prestige by purchasing augmentation
+const BitNode8StartingMoney = 250e6;
+
+// Prestige by purchasing augmentation
 function prestigeAugmentation() {
     // Set Navigation to Terminal screen, for any logic that depends on it
     routing.navigateTo(Page.Terminal);
@@ -68,17 +80,17 @@ function prestigeAugmentation() {
     $("#terminal tr:not(:last)").remove();
     postNetburnerText();
 
-    //Delete all Worker Scripts objects
+    // Delete all Worker Scripts objects
     prestigeWorkerScripts();
 
     var homeComp = Player.getHomeComputer();
-    //Delete all servers except home computer
+    // Delete all servers except home computer
     prestigeAllServers();
 
-    //Delete Special Server IPs
-    prestigeSpecialServerIps(); //Must be done before initForeignServers()
+    // Delete Special Server IPs
+    prestigeSpecialServerIps(); // Must be done before initForeignServers()
 
-    //Reset home computer (only the programs) and add to AllServers
+    // Reset home computer (only the programs) and add to AllServers
     AddToAllServers(homeComp);
     prestigeHomeComputer(homeComp);
 
@@ -93,76 +105,69 @@ function prestigeAugmentation() {
         homeComp.programs.push(Programs.BruteSSHProgram.name);
     }
 
-    //Re-create foreign servers
+    // Re-create foreign servers
     initForeignServers(Player.getHomeComputer());
 
-    //Gain favor for Companies
+    // Gain favor for Companies
     for (var member in Companies) {
         if (Companies.hasOwnProperty(member)) {
             Companies[member].gainFavor();
         }
     }
 
-    //Gain favor for factions
+    // Gain favor for factions
     for (var member in Factions) {
         if (Factions.hasOwnProperty(member)) {
             Factions[member].gainFavor();
         }
     }
 
-    //Stop a Terminal action if there is onerror
+    // Stop a Terminal action if there is onerror
     if (Engine._actionInProgress) {
         Engine._actionInProgress = false;
         Terminal.finishAction(true);
     }
 
-    //Re-initialize things - This will update any changes
-    initFactions(); //Factions must be initialized before augmentations
-    initAugmentations(); //Calls reapplyAllAugmentations() and resets Player multipliers
+    // Re-initialize things - This will update any changes
+    initFactions(); // Factions must be initialized before augmentations
+    initAugmentations(); // Calls reapplyAllAugmentations() and resets Player multipliers
     Player.reapplyAllSourceFiles();
     initCompanies();
 
-    //Messages
+    // Messages
     initMessages();
 
-    //Gang, in BitNode 2
-    if (Player.bitNodeN == 2 && Player.inGang()) {
-        var faction = Factions[Player.gang.facName];
+    // Gang
+    if (Player.inGang()) {
+        const faction = Factions[Player.gang.facName];
         if (faction instanceof Faction) {
             joinFaction(faction);
         }
     }
 
-    //Cancel Bladeburner action
+    // Cancel Bladeburner action
     if (Player.bladeburner instanceof Bladeburner) {
         Player.bladeburner.prestige();
     }
 
-    //BitNode 8: Ghost of Wall Street
+    // BitNode 8: Ghost of Wall Street
     if (Player.bitNodeN === 8) {Player.money = new Decimal(BitNode8StartingMoney);}
     if (Player.bitNodeN === 8 || hasWallStreetSF) {
         Player.hasWseAccount = true;
         Player.hasTixApiAccess = true;
     }
 
-    //Reset Stock market
+    // Reset Stock market
     if (Player.hasWseAccount) {
         initStockMarket();
         initSymbolToStockMap();
     }
-    setStockMarketContentCreated(false);
-    var stockMarketList = document.getElementById("stock-market-list");
-    while(stockMarketList.firstChild) {
-        stockMarketList.removeChild(stockMarketList.firstChild);
-    }
-    var watchlist = document.getElementById("stock-market-watchlist-filter");
-    watchlist.value = ""; //Reset watchlist filter
 
     // Refresh Main Menu (the 'World' menu, specifically)
     document.getElementById("world-menu-header").click();
     document.getElementById("world-menu-header").click();
 
-    //Red Pill
+    // Red Pill
     if (augmentationExists(AugmentationNames.TheRedPill) &&
         Augmentations[AugmentationNames.TheRedPill].owned) {
         var WorldDaemon = AllServers[SpecialServerIps[SpecialServerNames.WorldDaemon]];
@@ -175,27 +180,27 @@ function prestigeAugmentation() {
 }
 
 
-//Prestige by destroying Bit Node and gaining a Source File
+// Prestige by destroying Bit Node and gaining a Source File
 function prestigeSourceFile() {
     initBitNodeMultipliers(Player);
     updateSourceFileFlags(Player);
 
     Player.prestigeSourceFile();
-    prestigeWorkerScripts(); //Delete all Worker Scripts objects
+    prestigeWorkerScripts(); // Delete all Worker Scripts objects
 
     var homeComp = Player.getHomeComputer();
 
-    //Delete all servers except home computer
-    prestigeAllServers(); //Must be done before initForeignServers()
+    // Delete all servers except home computer
+    prestigeAllServers(); // Must be done before initForeignServers()
 
-    //Delete Special Server IPs
+    // Delete Special Server IPs
     prestigeSpecialServerIps();
 
-    //Reset home computer (only the programs) and add to AllServers
+    // Reset home computer (only the programs) and add to AllServers
     AddToAllServers(homeComp);
     prestigeHomeComputer(homeComp);
 
-    //Re-create foreign servers
+    // Re-create foreign servers
     initForeignServers(Player.getHomeComputer());
 
     if (SourceFileFlags[9] >= 2) {
@@ -240,11 +245,11 @@ function prestigeSourceFile() {
     Player.reapplyAllSourceFiles();
     initCompanies();
 
-    //Clear terminal
+    // Clear terminal
     $("#terminal tr:not(:last)").remove();
     postNetburnerText();
 
-    //Messages
+    // Messages
     initMessages();
 
     var mainMenu = document.getElementById("mainmenu-container");
@@ -252,17 +257,17 @@ function prestigeSourceFile() {
     Terminal.resetTerminalInput();
     Engine.loadTerminalContent();
 
-    //Reinitialize Bit Node flags
+    // Reinitialize Bit Node flags
     initSingularitySFFlags();
 
-    //BitNode 3: Corporatocracy
+    // BitNode 3: Corporatocracy
     if (Player.bitNodeN === 3) {
         homeComp.messages.push("corporation-management-handbook.lit");
         dialogBoxCreate("You received a copy of the Corporation Management Handbook on your home computer. " +
                         "Read it if you need help getting started with Corporations!");
     }
 
-    //BitNode 6: Bladeburner
+    // BitNode 6: Bladeburner
     if (Player.bitNodeN === 6) {
         var cinematicText = ["In the middle of the 21st century, OmniTek Incorporated advanced robot evolution " +
                              "with their Synthoids (synthetic androids), a being virtually identical to a human.",
@@ -306,7 +311,7 @@ function prestigeSourceFile() {
 
     }
 
-    //BitNode 8: Ghost of Wall Street
+    // BitNode 8: Ghost of Wall Street
     if (Player.bitNodeN === 8) {Player.money = new Decimal(BitNode8StartingMoney);}
     if (Player.bitNodeN === 8 || hasWallStreetSF) {
         Player.hasWseAccount = true;
@@ -322,11 +327,8 @@ function prestigeSourceFile() {
     if (Player.hasWseAccount) {
         initStockMarket();
         initSymbolToStockMap();
-    }
-    setStockMarketContentCreated(false);
-    var stockMarketList = document.getElementById("stock-market-list");
-    while(stockMarketList.firstChild) {
-        stockMarketList.removeChild(stockMarketList.firstChild);
+    } else {
+        deleteStockMarket();
     }
 
     if (Player.inGang()) { Player.gang.clearUI(); }
@@ -350,7 +352,7 @@ function prestigeSourceFile() {
     document.getElementById("world-menu-header").click();
     document.getElementById("world-menu-header").click();
 
-    //Gain int exp
+    // Gain int exp
     Player.gainIntelligenceExp(5);
 }
 

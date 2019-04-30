@@ -1,117 +1,151 @@
-var sprintf = require('sprintf-js').sprintf,
-    vsprintf = require('sprintf-js').vsprintf
+const sprintf = require("sprintf-js").sprintf;
+const vsprintf = require("sprintf-js").vsprintf;
 
-import {updateActiveScriptsItems}                   from "./ActiveScriptsUI";
-import { Augmentation }                             from "./Augmentation/Augmentation";
-import { Augmentations }                            from "./Augmentation/Augmentations";
-import { augmentationExists,
-         installAugmentations }                     from "./Augmentation/AugmentationHelpers";
-import { AugmentationNames }                        from "./Augmentation/data/AugmentationNames";
-import { BitNodeMultipliers }                       from "./BitNode/BitNodeMultipliers";
-import { findCrime }                                from "./Crime/CrimeHelpers";
-import {Bladeburner}                                from "./Bladeburner";
-import {Company}                                    from "./Company/Company";
-import {Companies, companyExists}                   from "./Company/Companies";
-import {CompanyPosition}                            from "./Company/CompanyPosition";
-import {CompanyPositions}                           from "./Company/CompanyPositions";
-import {CONSTANTS}                                  from "./Constants";
-import { DarkWebItems }                             from "./DarkWeb/DarkWebItems";
-import {calculateHackingChance,
-        calculateHackingExpGain,
-        calculatePercentMoneyHacked,
-        calculateHackingTime,
-        calculateGrowTime,
-        calculateWeakenTime}                        from "./Hacking";
-import {AllGangs}                                   from "./Gang";
-import { Faction }                                  from "./Faction/Faction";
-import { Factions,
-         factionExists }                            from "./Faction/Factions";
-import { joinFaction,
-         purchaseAugmentation }                     from "./Faction/FactionHelpers";
-import { FactionWorkType }                          from "./Faction/FactionWorkTypeEnum";
-import { netscriptCanGrow,
-         netscriptCanHack,
-         netscriptCanWeaken }                       from "./Hacking/netscriptCanHack";
+import { updateActiveScriptsItems } from "./ActiveScriptsUI";
+import { Augmentation } from "./Augmentation/Augmentation";
+import { Augmentations } from "./Augmentation/Augmentations";
+import {
+    augmentationExists,
+    installAugmentations
+} from "./Augmentation/AugmentationHelpers";
+import { AugmentationNames } from "./Augmentation/data/AugmentationNames";
+import { BitNodeMultipliers } from "./BitNode/BitNodeMultipliers";
+import { findCrime } from "./Crime/CrimeHelpers";
+import { Bladeburner } from "./Bladeburner";
+import { Company } from "./Company/Company";
+import { Companies, companyExists } from "./Company/Companies";
+import { CompanyPosition } from "./Company/CompanyPosition";
+import { CompanyPositions } from "./Company/CompanyPositions";
+import { CONSTANTS } from "./Constants";
+import { DarkWebItems } from "./DarkWeb/DarkWebItems";
+import {
+    calculateHackingChance,
+    calculateHackingExpGain,
+    calculatePercentMoneyHacked,
+    calculateHackingTime,
+    calculateGrowTime,
+    calculateWeakenTime
+} from "./Hacking";
+import { AllGangs } from "./Gang";
+import { Faction } from "./Faction/Faction";
+import { Factions, factionExists } from "./Faction/Factions";
+import { joinFaction, purchaseAugmentation } from "./Faction/FactionHelpers";
+import { FactionWorkType } from "./Faction/FactionWorkTypeEnum";
+import {
+    netscriptCanGrow,
+    netscriptCanHack,
+    netscriptCanWeaken
+} from "./Hacking/netscriptCanHack";
 
-import { getCostOfNextHacknetNode,
-         getCostOfNextHacknetServer,
-         purchaseHacknet,
-         hasHacknetServers,
-         purchaseHashUpgrade }                      from "./Hacknet/HacknetHelpers";
-import { CityName }                                 from "./Locations/data/CityNames";
-import { LocationName }                             from "./Locations/data/LocationNames";
+import {
+    getCostOfNextHacknetNode,
+    getCostOfNextHacknetServer,
+    purchaseHacknet,
+    hasHacknetServers,
+    purchaseHashUpgrade
+} from "./Hacknet/HacknetHelpers";
+import { CityName } from "./Locations/data/CityNames";
+import { LocationName } from "./Locations/data/LocationNames";
 
-import { HacknetServer }                            from "./Hacknet/HacknetServer";
-import { Message }                                  from "./Message/Message";
-import { Messages }                                 from "./Message/MessageHelpers";
-import {inMission}                                  from "./Missions";
-import {Player}                                     from "./Player";
-import { Programs }                                 from "./Programs/Programs";
-import { Script }                                   from "./Script/Script";
-import { findRunningScript }                        from "./Script/ScriptHelpers";
-import { isScriptFilename }                         from "./Script/ScriptHelpersTS";
-import { AllServers,
-         AddToAllServers }                          from "./Server/AllServers";
-import { Server }                                   from "./Server/Server";
-import { GetServerByHostname,
-         getServer,
-         getServerOnNetwork,
-         numCycleForGrowth,
-         processSingleServerGrowth }                from "./Server/ServerHelpers";
-import { getPurchaseServerCost,
-         getPurchaseServerLimit,
-         getPurchaseServerMaxRam }                  from "./Server/ServerPurchases";
-import {Settings}                                   from "./Settings/Settings";
-import {SpecialServerIps}                           from "./Server/SpecialServerIps";
-import {Stock}                                      from "./StockMarket/Stock";
-import {StockMarket, StockSymbols, SymbolToStockMap,
-        initStockMarket, initSymbolToStockMap, buyStock,
-        sellStock, updateStockPlayerPosition,
-        shortStock, sellShort, OrderTypes,
-        PositionTypes, placeOrder, cancelOrder}     from "./StockMarket/StockMarket";
-import { getStockmarket4SDataCost,
-         getStockMarket4STixApiCost }               from "./StockMarket/StockMarketCosts";
-import { SourceFileFlags }                          from "./SourceFile/SourceFileFlags"
-import {TextFile, getTextFile, createTextFile}      from "./TextFile";
+import { HacknetServer } from "./Hacknet/HacknetServer";
+import { Message } from "./Message/Message";
+import { Messages } from "./Message/MessageHelpers";
+import { inMission } from "./Missions";
+import { Player } from "./Player";
+import { Programs } from "./Programs/Programs";
+import { Script } from "./Script/Script";
+import { findRunningScript } from "./Script/ScriptHelpers";
+import { isScriptFilename } from "./Script/ScriptHelpersTS";
+import { AllServers, AddToAllServers } from "./Server/AllServers";
+import { Server } from "./Server/Server";
+import {
+    GetServerByHostname,
+    getServer,
+    getServerOnNetwork,
+    numCycleForGrowth,
+    processSingleServerGrowth
+} from "./Server/ServerHelpers";
+import {
+    getPurchaseServerCost,
+    getPurchaseServerLimit,
+    getPurchaseServerMaxRam
+} from "./Server/ServerPurchases";
+import { Settings } from "./Settings/Settings";
+import { SpecialServerIps } from "./Server/SpecialServerIps";
+import { Stock } from "./StockMarket/Stock";
+import {
+    StockMarket,
+    SymbolToStockMap,
+    initSymbolToStockMap,
+    buyStock,
+    sellStock,
+    shortStock,
+    sellShort,
+    placeOrder,
+    cancelOrder
+} from "./StockMarket/StockMarket";
+import {
+    getBuyTransactionCost,
+    getSellTransactionGain,
+} from "./StockMarket/StockMarketHelpers";
+import { OrderTypes } from "./StockMarket/data/OrderTypes";
+import { PositionTypes } from "./StockMarket/data/PositionTypes";
+import { StockSymbols } from "./StockMarket/data/StockSymbols";
+import {
+    getStockmarket4SDataCost,
+    getStockMarket4STixApiCost
+} from "./StockMarket/StockMarketCosts";
+import { SourceFileFlags } from "./SourceFile/SourceFileFlags";
+import { TextFile, getTextFile, createTextFile } from "./TextFile";
 
-import {unknownBladeburnerActionErrorMessage,
-        unknownBladeburnerExceptionMessage,
-        checkBladeburnerAccess}                     from "./NetscriptBladeburner";
-import * as nsGang                                  from "./NetscriptGang";
-import {WorkerScript, workerScripts,
-        killWorkerScript, NetscriptPorts}           from "./NetscriptWorker";
-import {makeRuntimeRejectMsg, netscriptDelay,
-        runScriptFromScript}                        from "./NetscriptEvaluator";
-import {NetscriptPort}                              from "./NetscriptPort";
-import { SleeveTaskType }                           from "./PersonObjects/Sleeve/SleeveTaskTypesEnum";
-import { findSleevePurchasableAugs }                from "./PersonObjects/Sleeve/Sleeve";
+import {
+    unknownBladeburnerActionErrorMessage,
+    unknownBladeburnerExceptionMessage,
+    checkBladeburnerAccess
+} from "./NetscriptBladeburner";
+import * as nsGang from "./NetscriptGang";
+import {
+    WorkerScript,
+    workerScripts,
+    killWorkerScript,
+    NetscriptPorts
+} from "./NetscriptWorker";
+import {
+    makeRuntimeRejectMsg,
+    netscriptDelay,
+    runScriptFromScript
+} from "./NetscriptEvaluator";
+import { NetscriptPort } from "./NetscriptPort";
+import { SleeveTaskType } from "./PersonObjects/Sleeve/SleeveTaskTypesEnum";
+import { findSleevePurchasableAugs } from "./PersonObjects/Sleeve/SleeveHelpers";
 
-import {Page, routing}                              from "./ui/navigationTracking";
-import {numeralWrapper}                             from "./ui/numeralFormat";
-import {post}                                       from "./ui/postToTerminal";
-import { setTimeoutRef }                            from "./utils/SetTimeoutRef";
-import { is2DArray }                                from "./utils/helpers/is2DArray";
+import { Page, routing } from "./ui/navigationTracking";
+import { numeralWrapper } from "./ui/numeralFormat";
+import { post } from "./ui/postToTerminal";
+import { setTimeoutRef } from "./utils/SetTimeoutRef";
+import { is2DArray } from "./utils/helpers/is2DArray";
 
-import {dialogBoxCreate}                            from "../utils/DialogBox";
-import {isPowerOfTwo}                               from "../utils/helpers/isPowerOfTwo";
-import {arrayToString}                              from "../utils/helpers/arrayToString";
-import {createRandomIp}                             from "../utils/IPAddress";
-import {formatNumber, isHTML}                       from "../utils/StringHelperFunctions";
-import {isString}                                   from "../utils/helpers/isString";
+import { dialogBoxCreate } from "../utils/DialogBox";
+import { isPowerOfTwo } from "../utils/helpers/isPowerOfTwo";
+import { arrayToString } from "../utils/helpers/arrayToString";
+import { createRandomIp } from "../utils/IPAddress";
+import { formatNumber, isHTML } from "../utils/StringHelperFunctions";
+import { isString } from "../utils/helpers/isString";
 
-import { createElement }                            from "../utils/uiHelpers/createElement";
-import { createPopup }                              from "../utils/uiHelpers/createPopup";
-import { removeElementById }                        from "../utils/uiHelpers/removeElementById";
+import { createElement } from "../utils/uiHelpers/createElement";
+import { createPopup } from "../utils/uiHelpers/createPopup";
+import { removeElementById } from "../utils/uiHelpers/removeElementById";
 
-var hasCorporationSF            = false, //Source-File 3
-    hasSingularitySF            = false, //Source-File 4
-    hasAISF                     = false, //Source-File 5
-    hasBladeburnerSF            = false, //Source-File 6
-    hasBladeburner2079SF        = false, //Source-File 7
-    hasWallStreetSF             = false, //Source-File 8
-    hasBn11SF                   = false; //Source-File 11
+let hasCorporationSF            = false; // Source-File 3
+let hasSingularitySF            = false; // Source-File 4
+let hasAISF                     = false; // Source-File 5
+let hasBladeburnerSF            = false; // Source-File 6
+let hasBladeburner2079SF        = false; // Source-File 7
+let hasWallStreetSF             = false; // Source-File 8
+let hasBn11SF                   = false; // Source-File 11
 
-var singularitySFLvl=1, wallStreetSFLvl=1;
+let singularitySFLvl = 1;
+let wallStreetSFLvl = 1;
 
 var possibleLogs = {
     ALL: true,
@@ -184,7 +218,7 @@ var possibleLogs = {
     setTerritoryWarfare: true,
 }
 
-//Used to check and set flags for every Source File, despite the name of the function
+// Used to check and set flags for every Source File, despite the name of the function
 function initSingularitySFFlags() {
     for (var i = 0; i < Player.sourceFiles.length; ++i) {
         if (Player.sourceFiles[i].n === 3) {hasCorporationSF        = true;}
@@ -248,6 +282,32 @@ function NetscriptFunctions(workerScript) {
             throw makeRuntimeRejectMsg(workerScript, `Invalid IP or hostname passed into ${callingFnName}() function`);
         }
         return server;
+    }
+
+    /**
+     * Checks if the player has TIX API access. Throws an error if the player does not
+     */
+    const checkTixApiAccess = function(callingFn="") {
+        if (!Player.hasWseAccount) {
+            throw makeRuntimeRejectMsg(workerScript, `You don't have WSE Access! Cannot use ${callingFn}()`);
+        }
+        if (!Player.hasTixApiAccess) {
+            throw makeRuntimeRejectMsg(workerScript, `You don't have TIX API Access! Cannot use ${callingFn}()`);
+        }
+    }
+
+    /**
+     * Gets a stock, given its symbol. Throws an error if the symbol is invalid
+     * @param {string} symbol - Stock's symbol
+     * @returns {Stock} stock object
+     */
+    const getStockFromSymbol = function(symbol, callingFn="") {
+        const stock = SymbolToStockMap[symbol];
+        if (stock == null) {
+            throw makeRuntimeRejectMsg(workerScript, `Invalid stock symbol passed into ${callingFn}()`);
+        }
+
+        return stock;
     }
 
     /**
@@ -423,10 +483,10 @@ function NetscriptFunctions(workerScript) {
                 throw makeRuntimeRejectMsg(workerScript, "hack() error. Invalid IP or hostname passed in: " + ip + ". Stopping...");
             }
 
-            //Calculate the hacking time
-            var hackingTime = calculateHackingTime(server); //This is in seconds
+            // Calculate the hacking time
+            var hackingTime = calculateHackingTime(server); // This is in seconds
 
-            //No root access or skill level too low
+            // No root access or skill level too low
             const canHack = netscriptCanHack(server, Player);
             if (!canHack.res) {
                 workerScript.scriptRef.log(`ERROR: ${canHack.msg}`);
@@ -443,18 +503,17 @@ function NetscriptFunctions(workerScript) {
                 var rand = Math.random();
                 var expGainedOnSuccess = calculateHackingExpGain(server) * threads;
                 var expGainedOnFailure = (expGainedOnSuccess / 4);
-                if (rand < hackChance) { //Success!
+                if (rand < hackChance) { // Success!
                     const percentHacked = calculatePercentMoneyHacked(server);
                     let maxThreadNeeded = Math.ceil(1/percentHacked*(server.moneyAvailable/server.moneyMax));
                     if (isNaN(maxThreadNeeded)) {
-                        //Server has a 'max money' of 0 (probably).
-                        //We'll set this to an arbitrarily large value
+                        // Server has a 'max money' of 0 (probably). We'll set this to an arbitrarily large value
                         maxThreadNeeded = 1e6;
                     }
 
                     let moneyGained = Math.floor(server.moneyAvailable * percentHacked) * threads;
 
-                    //Over-the-top safety checks
+                    // Over-the-top safety checks
                     if (moneyGained <= 0) {
                         moneyGained = 0;
                         expGainedOnSuccess = expGainedOnFailure;
@@ -476,7 +535,7 @@ function NetscriptFunctions(workerScript) {
                     server.fortify(CONSTANTS.ServerFortifyAmount * Math.min(threads, maxThreadNeeded));
                     return Promise.resolve(moneyGained);
                 } else {
-                    //Player only gains 25% exp for failure?
+                    // Player only gains 25% exp for failure?
                     Player.gainHackingExp(expGainedOnFailure);
                     workerScript.scriptRef.onlineExpGained += expGainedOnFailure;
                     if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.hack == null) {
@@ -554,7 +613,7 @@ function NetscriptFunctions(workerScript) {
                 throw makeRuntimeRejectMsg(workerScript, "Cannot grow(). Invalid IP or hostname passed in: " + ip);
             }
 
-            //No root access or skill level too low
+            // No root access or skill level too low
             const canHack = netscriptCanGrow(server);
             if (!canHack.res) {
                 workerScript.scriptRef.log(`ERROR: ${canHack.msg}`);
@@ -568,7 +627,7 @@ function NetscriptFunctions(workerScript) {
             return netscriptDelay(growTime * 1000, workerScript).then(function() {
                 if (workerScript.env.stopFlag) {return Promise.reject(workerScript);}
                 const moneyBefore = server.moneyAvailable <= 0 ? 1 : server.moneyAvailable;
-                server.moneyAvailable += (1 * threads); //It can be grown even if it has no money
+                server.moneyAvailable += (1 * threads); // It can be grown even if it has no money
                 var growthPercentage = processSingleServerGrowth(server, 450 * threads, Player);
                 const moneyAfter = server.moneyAvailable;
                 workerScript.scriptRef.recordGrow(server.ip, threads);
@@ -616,7 +675,7 @@ function NetscriptFunctions(workerScript) {
                 throw makeRuntimeRejectMsg(workerScript, "Cannot weaken(). Invalid IP or hostname passed in: " + ip);
             }
 
-            //No root access or skill level too low
+            // No root access or skill level too low
             const canHack = netscriptCanWeaken(server);
             if (!canHack.res) {
                 workerScript.scriptRef.log(`ERROR: ${canHack.msg}`);
@@ -899,7 +958,7 @@ function NetscriptFunctions(workerScript) {
             if (scriptname === undefined) {
                 throw makeRuntimeRejectMsg(workerScript, "run() call has incorrect number of arguments. Usage: run(scriptname, [numThreads], [arg1], [arg2]...)");
             }
-            if (isNaN(threads) || threads < 0) {
+            if (isNaN(threads) || threads <= 0) {
                 throw makeRuntimeRejectMsg(workerScript, "Invalid argument for thread count passed into run(). Must be numeric and greater than 0");
             }
             var argsForNewScript = [];
@@ -921,7 +980,7 @@ function NetscriptFunctions(workerScript) {
             if (scriptname === undefined || ip === undefined) {
                 throw makeRuntimeRejectMsg(workerScript, "exec() call has incorrect number of arguments. Usage: exec(scriptname, server, [numThreads], [arg1], [arg2]...)");
             }
-            if (isNaN(threads) || threads < 0) {
+            if (isNaN(threads) || threads <= 0) {
                 throw makeRuntimeRejectMsg(workerScript, "Invalid argument for thread count passed into exec(). Must be numeric and greater than 0");
             }
             var argsForNewScript = [];
@@ -946,7 +1005,7 @@ function NetscriptFunctions(workerScript) {
                 if (scriptname === undefined) {
                     throw makeRuntimeRejectMsg(workerScript, "spawn() call has incorrect number of arguments. Usage: spawn(scriptname, numThreads, [arg1], [arg2]...)");
                 }
-                if (isNaN(threads) || threads < 0) {
+                if (isNaN(threads) || threads <= 0) {
                     throw makeRuntimeRejectMsg(workerScript, "Invalid argument for thread count passed into run(). Must be numeric and greater than 0");
                 }
                 var argsForNewScript = [];
@@ -1043,7 +1102,7 @@ function NetscriptFunctions(workerScript) {
                 throw makeRuntimeRejectMsg(workerScript, "ERROR: scp() call has incorrect number of arguments. Takes 2 or 3 arguments");
             }
             if (scriptname && scriptname.constructor === Array) {
-                //Recursively call scp on all elements of array
+                // Recursively call scp on all elements of array
                 var res = false;
                 scriptname.forEach(function(script) {
                     if (NetscriptFunctions(workerScript).scp(script, ip1, ip2)) {
@@ -1089,7 +1148,7 @@ function NetscriptFunctions(workerScript) {
                 throw makeRuntimeRejectMsg(workerScript, "ERROR: scp() call has incorrect number of arguments. Takes 2 or 3 arguments");
             }
 
-            //Scp for lit files
+            // Scp for lit files
             if (scriptname.endsWith(".lit")) {
                 var found = false;
                 for (var i = 0; i < currServ.messages.length; ++i) {
@@ -1109,7 +1168,7 @@ function NetscriptFunctions(workerScript) {
                         if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.scp == null) {
                             workerScript.scriptRef.log(scriptname + " copied over to " + destServer.hostname);
                         }
-                        return true; //Already exists
+                        return true; // Already exists
                     }
                 }
                 destServer.messages.push(scriptname);
@@ -1119,7 +1178,7 @@ function NetscriptFunctions(workerScript) {
                 return true;
             }
 
-            //Scp for text files
+            // Scp for text files
             if (scriptname.endsWith(".txt")) {
                 var found = false, txtFile;
                 for (var i = 0; i < currServ.textFiles.length; ++i) {
@@ -1137,7 +1196,7 @@ function NetscriptFunctions(workerScript) {
 
                 for (var i = 0; i < destServer.textFiles.length; ++i) {
                     if (destServer.textFiles[i].fn === scriptname) {
-                        //Overwrite
+                        // Overwrite
                         destServer.textFiles[i].text = txtFile.text;
                         if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.scp == null) {
                             workerScript.scriptRef.log(scriptname + " copied over to " + destServer.hostname);
@@ -1153,7 +1212,7 @@ function NetscriptFunctions(workerScript) {
                 return true;
             }
 
-            //Scp for script files
+            // Scp for script files
             var sourceScript = null;
             for (var i = 0; i < currServ.scripts.length; ++i) {
                 if (scriptname == currServ.scripts[i].filename) {
@@ -1166,7 +1225,7 @@ function NetscriptFunctions(workerScript) {
                 return false;
             }
 
-            //Overwrite script if it already exists
+            // Overwrite script if it already exists
             for (var i = 0; i < destServer.scripts.length; ++i) {
                 if (scriptname == destServer.scripts[i].filename) {
                     if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.scp == null) {
@@ -1181,7 +1240,7 @@ function NetscriptFunctions(workerScript) {
                 }
             }
 
-            //Create new script if it does not already exist
+            // Create new script if it does not already exist
             var newScript = new Script();
             newScript.filename = scriptname;
             newScript.code = sourceScript.code;
@@ -1207,7 +1266,7 @@ function NetscriptFunctions(workerScript) {
                 throw makeRuntimeRejectMsg(workerScript, "ls() failed. Invalid IP or hostname passed in: " + ip);
             }
 
-            //Get the grep filter, if one exists
+            // Get the grep filter, if one exists
             var filter = false;
             if (arguments.length >= 2) {
                 filter = grep.toString();
@@ -1271,7 +1330,7 @@ function NetscriptFunctions(workerScript) {
                 }
             }
 
-            //Sort the files alphabetically then print each
+            // Sort the files alphabetically then print each
             allFiles.sort();
             return allFiles;
         },
@@ -1556,9 +1615,7 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("getStockSymbols", CONSTANTS.ScriptGetStockRamCost);
             }
             updateDynamicRam("getStockSymbols", CONSTANTS.ScriptGetStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getStockSymbols()");
-            }
+            checkTixApiAccess("getStockSymbols");
             return Object.values(StockSymbols);
         },
         getStockPrice : function(symbol) {
@@ -1566,23 +1623,37 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("getStockPrice", CONSTANTS.ScriptGetStockRamCost);
             }
             updateDynamicRam("getStockPrice", CONSTANTS.ScriptGetStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getStockPrice()");
+            checkTixApiAccess("getStockPrice");
+            const stock = getStockFromSymbol(symbol, "getStockPrice");
+
+            return stock.price;
+        },
+        getStockAskPrice : function(symbol) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getStockAskPrice", CONSTANTS.ScriptGetStockRamCost);
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "Invalid stock symbol passed into getStockPrice()");
+            updateDynamicRam("getStockAskPrice", CONSTANTS.ScriptGetStockRamCost);
+            checkTixApiAccess("getStockAskPrice");
+            const stock = getStockFromSymbol(symbol, "getStockAskPrice");
+
+            return stock.getAskPrice();
+        },
+        getStockBidPrice : function(symbol) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getStockBidPrice", CONSTANTS.ScriptGetStockRamCost);
             }
-            return parseFloat(stock.price.toFixed(3));
+            updateDynamicRam("getStockBidPrice", CONSTANTS.ScriptGetStockRamCost);
+            checkTixApiAccess("getStockBidPrice");
+            const stock = getStockFromSymbol(symbol, "getStockBidPrice");
+
+            return stock.getBidPrice();
         },
         getStockPosition : function(symbol) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("getStockPosition", CONSTANTS.ScriptGetStockRamCost);
             }
             updateDynamicRam("getStockPosition", CONSTANTS.ScriptGetStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getStockPosition()");
-            }
+            checkTixApiAccess("getStockPosition");
             var stock = SymbolToStockMap[symbol];
             if (stock == null) {
                 throw makeRuntimeRejectMsg(workerScript, "Invalid stock symbol passed into getStockPosition()");
@@ -1594,166 +1665,126 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("getStockMaxShares", CONSTANTS.ScriptGetStockRamCost);
             }
             updateDynamicRam("getStockMaxShares", CONSTANTS.ScriptGetStockRamCost);
-
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getStockMaxShares()");
-            }
-            const stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "Invalid stock symbol passed into getStockMaxShares()");
-            }
+            checkTixApiAccess("getStockMaxShares");
+            const stock = getStockFromSymbol(symbol, "getStockMaxShares");
 
             return stock.maxShares;
+        },
+        getStockPurchaseCost : function(symbol, shares, posType) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getStockPurchaseCost", CONSTANTS.ScriptGetStockRamCost);
+            }
+            updateDynamicRam("getStockPurchaseCost", CONSTANTS.ScriptGetStockRamCost);
+            checkTixApiAccess("getStockPurchaseCost");
+            const stock = getStockFromSymbol(symbol, "getStockPurchaseCost");
+            shares = Math.round(shares);
+
+            let pos;
+            const sanitizedPosType = posType.toLowerCase();
+            if (sanitizedPosType.includes("l")) {
+                pos = PositionTypes.Long;
+            } else if (sanitizedPosType.includes("s")) {
+                pos = PositionTypes.Short;
+            } else {
+                return Infinity;
+            }
+
+            const res = getBuyTransactionCost(stock, shares, pos);
+            if (res == null) { return Infinity; }
+
+            return res;
+        },
+        getStockSaleGain : function(symbol, shares, posType) {
+            if (workerScript.checkingRam) {
+                return updateStaticRam("getStockSaleGain", CONSTANTS.ScriptGetStockRamCost);
+            }
+            updateDynamicRam("getStockSaleGain", CONSTANTS.ScriptGetStockRamCost);
+            checkTixApiAccess("getStockSaleGain");
+            const stock = getStockFromSymbol(symbol, "getStockSaleGain");
+            shares = Math.round(shares);
+
+            let pos;
+            const sanitizedPosType = posType.toLowerCase();
+            if (sanitizedPosType.includes("l")) {
+                pos = PositionTypes.Long;
+            } else if (sanitizedPosType.includes("s")) {
+                pos = PositionTypes.Short;
+            } else {
+                return 0;
+            }
+
+            const res = getSellTransactionGain(stock, shares, pos);
+            if (res == null) { return 0; }
+
+            return res;
         },
         buyStock : function(symbol, shares) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("buyStock", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("buyStock", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use buyStock()");
-            }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "Invalid stock symbol passed into buyStock()");
-            }
-            if (shares < 0 || isNaN(shares)) {
-                workerScript.scriptRef.log("ERROR: Invalid 'shares' argument passed to buyStock()");
-                return 0;
-            }
-            shares = Math.round(shares);
-            if (shares === 0) {return 0;}
+            checkTixApiAccess("buyStock");
+            const stock = getStockFromSymbol(symbol, "buyStock");
+            const res = buyStock(stock, shares, workerScript);
 
-            // Does player have enough money?
-            var totalPrice = stock.price * shares;
-            if (Player.money.lt(totalPrice + CONSTANTS.StockMarketCommission)) {
-                workerScript.scriptRef.log("Not enough money to purchase " + formatNumber(shares, 0) + " shares of " +
-                                           symbol + ". Need $" +
-                                           formatNumber(totalPrice + CONSTANTS.StockMarketCommission, 2).toString());
-                return 0;
-            }
-
-            // Would this purchase exceed the maximum number of shares?
-            if (shares + stock.playerShares + stock.playerShortShares > stock.maxShares) {
-                workerScript.scriptRef.log(`You cannot purchase this many shares. ${stock.symbol} has a maximum of ` +
-                                           `${stock.maxShares} shares.`);
-                return 0;
-            }
-
-            var origTotal = stock.playerShares * stock.playerAvgPx;
-            Player.loseMoney(totalPrice + CONSTANTS.StockMarketCommission);
-            var newTotal = origTotal + totalPrice;
-            stock.playerShares += shares;
-            stock.playerAvgPx = newTotal / stock.playerShares;
-            if (routing.isOn(Page.StockMarket)) {
-                updateStockPlayerPosition(stock);
-            }
-            if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.buyStock == null) {
-                workerScript.scriptRef.log("Bought " + formatNumber(shares, 0) + " shares of " + stock.symbol + " at $" +
-                                           formatNumber(stock.price, 2) + " per share");
-            }
-            return stock.price;
+            return res ? stock.price : 0;
         },
         sellStock : function(symbol, shares) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("sellStock", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("sellStock", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use sellStock()");
-            }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "Invalid stock symbol passed into sellStock()");
-            }
-            if (shares < 0 || isNaN(shares)) {
-                workerScript.scriptRef.log("ERROR: Invalid 'shares' argument passed to sellStock()");
-                return 0;
-            }
-            shares = Math.round(shares);
-            if (shares > stock.playerShares) {shares = stock.playerShares;}
-            if (shares === 0) {return 0;}
-            var gains = stock.price * shares - CONSTANTS.StockMarketCommission;
-            Player.gainMoney(gains);
+            checkTixApiAccess("sellStock");
+            const stock = getStockFromSymbol(symbol, "sellStock");
+            const res = sellStock(stock, shares, workerScript);
 
-            //Calculate net profit and add to script stats
-            var netProfit = ((stock.price - stock.playerAvgPx) * shares) - CONSTANTS.StockMarketCommission;
-            if (isNaN(netProfit)) {netProfit = 0;}
-            workerScript.scriptRef.onlineMoneyMade += netProfit;
-            Player.scriptProdSinceLastAug += netProfit;
-            Player.recordMoneySource(netProfit, "stock");
-
-            stock.playerShares -= shares;
-            if (stock.playerShares == 0) {
-                stock.playerAvgPx = 0;
-            }
-            if (routing.isOn(Page.StockMarket)) {
-                updateStockPlayerPosition(stock);
-            }
-            if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.sellStock == null) {
-                workerScript.scriptRef.log("Sold " + formatNumber(shares, 0) + " shares of " + stock.symbol + " at $" +
-                                           formatNumber(stock.price, 2) + " per share. Gained " +
-                                           "$" + formatNumber(gains, 2));
-            }
-            return stock.price;
+            return res ? stock.price : 0;
         },
-        shortStock(symbol, shares) {
+        shortStock : function(symbol, shares) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("shortStock", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("shortStock", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use shortStock()");
-            }
+            checkTixApiAccess("shortStock");
             if (Player.bitNodeN !== 8) {
                 if (!(hasWallStreetSF && wallStreetSFLvl >= 2)) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Cannot use shortStock(). You must either be in BitNode-8 or you must have Level 2 of Source-File 8");
                 }
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid stock symbol passed into shortStock()");
-            }
-            var res = shortStock(stock, shares, workerScript);
+            const stock = getStockFromSymbol(symbol, "shortStock");
+            const res = shortStock(stock, shares, workerScript);
+
             return res ? stock.price : 0;
         },
-        sellShort(symbol, shares) {
+        sellShort : function(symbol, shares) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("sellShort", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("sellShort", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use sellShort()");
-            }
+            checkTixApiAccess("sellShort");
             if (Player.bitNodeN !== 8) {
                 if (!(hasWallStreetSF && wallStreetSFLvl >= 2)) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Cannot use sellShort(). You must either be in BitNode-8 or you must have Level 2 of Source-File 8");
                 }
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid stock symbol passed into sellShort()");
-            }
-            var res = sellShort(stock, shares, workerScript);
+            const stock = getStockFromSymbol(symbol, "sellShort");
+            const res = sellShort(stock, shares, workerScript);
+
             return res ? stock.price : 0;
         },
-        placeOrder(symbol, shares, price, type, pos) {
+        placeOrder : function(symbol, shares, price, type, pos) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("placeOrder", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("placeOrder", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use placeOrder()");
-            }
+            checkTixApiAccess("placeOrder");
             if (Player.bitNodeN !== 8) {
                 if (!(hasWallStreetSF && wallStreetSFLvl >= 3)) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Cannot use placeOrder(). You must either be in BitNode-8 or have Level 3 of Source-File 8");
                 }
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid stock symbol passed into placeOrder()");
-            }
+            const stock = getStockFromSymbol(symbol, "placeOrder");
+
             var orderType, orderPos;
             type = type.toLowerCase();
             if (type.includes("limit") && type.includes("buy")) {
@@ -1779,23 +1810,18 @@ function NetscriptFunctions(workerScript) {
 
             return placeOrder(stock, shares, price, orderType, orderPos, workerScript);
         },
-        cancelOrder(symbol, shares, price, type, pos) {
+        cancelOrder : function(symbol, shares, price, type, pos) {
             if (workerScript.checkingRam) {
                 return updateStaticRam("cancelOrder", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("cancelOrder", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use cancelOrder()");
-            }
+            checkTixApiAccess("cancelOrder");
             if (Player.bitNodeN !== 8) {
                 if (!(hasWallStreetSF && wallStreetSFLvl >= 3)) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Cannot use cancelOrder(). You must either be in BitNode-8 or have Level 3 of Source-File 8");
                 }
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid stock symbol passed into cancelOrder()");
-            }
+            const stock = getStockFrom(symbol, "cancelOrder");
             if (isNaN(shares) || isNaN(price)) {
                 throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid shares or price argument passed into cancelOrder(). Must be numeric");
             }
@@ -1835,9 +1861,7 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("getOrders", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("getOrders", CONSTANTS.ScriptBuySellStockRamCost);
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use getOrders()");
-            }
+            checkTixApiAccess("getOrders");
             if (Player.bitNodeN !== 8) {
                 if (!(hasWallStreetSF && wallStreetSFLvl >= 3)) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Cannot use getOrders(). You must either be in BitNode-8 or have Level 3 of Source-File 8");
@@ -1872,11 +1896,9 @@ function NetscriptFunctions(workerScript) {
             if (!Player.has4SDataTixApi) {
                 throw makeRuntimeRejectMsg(workerScript, "You don't have 4S Market Data TIX API Access! Cannot use getStockVolatility()");
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid stock symbol passed into getStockVolatility()");
-            }
-            return stock.mv / 100; //Convert from percentage to decimal
+            const stock = getStockFromSymbol(symbol, "getStockVolatility");
+
+            return stock.mv / 100; // Convert from percentage to decimal
         },
         getStockForecast : function(symbol) {
             if (workerScript.checkingRam) {
@@ -1886,23 +1908,18 @@ function NetscriptFunctions(workerScript) {
             if (!Player.has4SDataTixApi) {
                 throw makeRuntimeRejectMsg(workerScript, "You don't have 4S Market Data TIX API Access! Cannot use getStockForecast()");
             }
-            var stock = SymbolToStockMap[symbol];
-            if (stock == null) {
-                throw makeRuntimeRejectMsg(workerScript, "ERROR: Invalid stock symbol passed into getStockForecast()");
-            }
+            const stock = getStockFromSymbol(symbol, "getStockForecast");
+
             var forecast = 50;
             stock.b ? forecast += stock.otlkMag : forecast -= stock.otlkMag;
-            return forecast / 100; //Convert from percentage to decimal
+            return forecast / 100; // Convert from percentage to decimal
         },
         purchase4SMarketData : function() {
             if (workerScript.checkingRam) {
                 return updateStaticRam("purchase4SMarketData", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("purchase4SMarketData", CONSTANTS.ScriptBuySellStockRamCost);
-
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use purchase4SMarketData()");
-            }
+            checkTixApiAccess("purchase4SMarketData");
 
             if (Player.has4SData) {
                 if (workerScript.shouldLog("purchase4SMarketData")) {
@@ -1930,10 +1947,7 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("purchase4SMarketDataTixApi", CONSTANTS.ScriptBuySellStockRamCost);
             }
             updateDynamicRam("purchase4SMarketDataTixApi", CONSTANTS.ScriptBuySellStockRamCost);
-
-            if (!Player.hasTixApiAccess) {
-                throw makeRuntimeRejectMsg(workerScript, "You don't have TIX API Access! Cannot use purchase4SMarketDataTixApi()");
-            }
+            checkTixApiAccess("purchase4SMarketDataTixApi");
 
             if (Player.has4SDataTixApi) {
                 if (workerScript.shouldLog("purchase4SMarketDataTixApi")) {
@@ -2055,25 +2069,25 @@ function NetscriptFunctions(workerScript) {
 
             var ip = server.ip;
 
-            //Can't delete server you're currently connected to
+            // Can't delete server you're currently connected to
             if (server.isConnectedTo) {
                 workerScript.scriptRef.log("ERROR: deleteServer() failed because you are currently connected to the server you are trying to delete");
                 return false;
             }
 
-            //A server cannot delete itself
+            // A server cannot delete itself
             if (ip === workerScript.serverIp) {
                 workerScript.scriptRef.log("ERROR: Cannot call deleteServer() on self. deleteServer() failed");
                 return false;
             }
 
-            //Delete all scripts running on server
+            // Delete all scripts running on server
             if (server.runningScripts.length > 0) {
                 workerScript.scriptRef.log("ERROR: Cannot delete server " + server.hostname + " because it still has scripts running.");
                 return false;
             }
 
-            //Delete from player's purchasedServers array
+            // Delete from player's purchasedServers array
             var found = false;
             for (var i = 0; i < Player.purchasedServers.length; ++i) {
                 if (ip == Player.purchasedServers[i]) {
@@ -2089,10 +2103,10 @@ function NetscriptFunctions(workerScript) {
                 return false;
             }
 
-            //Delete from all servers
+            // Delete from all servers
             delete AllServers[ip];
 
-            //Delete from home computer
+            // Delete from home computer
             found = false;
             var homeComputer = Player.getHomeComputer();
             for (var i = 0; i < homeComputer.serversOnNetwork.length; ++i) {
@@ -2104,7 +2118,7 @@ function NetscriptFunctions(workerScript) {
                     return true;
                 }
             }
-            //Wasn't found on home computer
+            // Wasn't found on home computer
             workerScript.scriptRef.log("ERROR: Could not find server " + server.hostname +
                                        "as a purchased server. This is likely a bug please contact game dev");
             return false;
@@ -2133,8 +2147,8 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("write", CONSTANTS.ScriptReadWriteRamCost);
             }
             updateDynamicRam("write", CONSTANTS.ScriptReadWriteRamCost);
-            if (!isNaN(port)) { //Write to port
-                //Port 1-10
+            if (!isNaN(port)) { // Write to port
+                // Port 1-10
                 port = Math.round(port);
                 if (port < 1 || port > CONSTANTS.NumNetscriptPorts) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Trying to write to invalid port: " + port + ". Only ports 1-" + CONSTANTS.NumNetscriptPorts + " are valid.");
@@ -2144,17 +2158,17 @@ function NetscriptFunctions(workerScript) {
                     throw makeRuntimeRejectMsg(workerScript, "Could not find port: " + port + ". This is a bug contact the game developer");
                 }
                 return port.write(data);
-            } else if (isString(port)) { //Write to script or text file
+            } else if (isString(port)) { // Write to script or text file
                 var fn = port;
                 var server = workerScript.getServer();
                 if (server == null) {
                     throw makeRuntimeRejectMsg(workerScript, "Error getting Server for this script in write(). This is a bug please contact game dev");
                 }
                 if (isScriptFilename(fn)) {
-                    //Write to script
+                    // Write to script
                     let script = workerScript.getScriptOnServer(fn);
                     if (script == null) {
-                        //Create a new script
+                        // Create a new script
                         script = new Script(fn, data, server.ip);
                         server.scripts.push(script);
                         return true;
@@ -2162,7 +2176,7 @@ function NetscriptFunctions(workerScript) {
                     mode === "w" ? script.code = data : script.code += data;
                     script.updateRamUsage();
                 } else {
-                    //Write to text file
+                    // Write to text file
                     let txtFile = getTextFile(fn, server);
                     if (txtFile == null) {
                         txtFile = createTextFile(fn, data, server);
@@ -2203,8 +2217,8 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("read", CONSTANTS.ScriptReadWriteRamCost);
             }
             updateDynamicRam("read", CONSTANTS.ScriptReadWriteRamCost);
-            if (!isNaN(port)) { //Read from port
-                //Port 1-10
+            if (!isNaN(port)) { // Read from port
+                // Port 1-10
                 port = Math.round(port);
                 if (port < 1 || port > CONSTANTS.NumNetscriptPorts) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Trying to read from invalid port: " + port + ". Only ports 1-" + CONSTANTS.NumNetscriptPorts + " are valid.");
@@ -2214,21 +2228,21 @@ function NetscriptFunctions(workerScript) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Could not find port: " + port + ". This is a bug contact the game developer");
                 }
                 return port.read();
-            } else if (isString(port)) { //Read from script or text file
+            } else if (isString(port)) { // Read from script or text file
                 let fn = port;
                 let server = getServer(workerScript.serverIp);
                 if (server == null) {
                     throw makeRuntimeRejectMsg(workerScript, "Error getting Server for this script in read(). This is a bug please contact game dev");
                 }
                 if (isScriptFilename(fn)) {
-                    //Read from script
+                    // Read from script
                     let script = workerScript.getScriptOnServer(fn);
                     if (script == null) {
                         return "";
                     }
                     return script.code;
                 } else {
-                    //Read from text file
+                    // Read from text file
                     let txtFile = getTextFile(fn, server);
                     if (txtFile !== null) {
                         return txtFile.text;
@@ -2263,7 +2277,7 @@ function NetscriptFunctions(workerScript) {
                 return updateStaticRam("clear", CONSTANTS.ScriptReadWriteRamCost);
             }
             updateDynamicRam("clear", CONSTANTS.ScriptReadWriteRamCost);
-            if (!isNaN(port)) { //Clear port
+            if (!isNaN(port)) { // Clear port
                 port = Math.round(port);
                 if (port < 1 || port > CONSTANTS.NumNetscriptPorts) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Trying to clear invalid port: " + port + ". Only ports 1-" + CONSTANTS.NumNetscriptPorts + " are valid");
@@ -2273,7 +2287,7 @@ function NetscriptFunctions(workerScript) {
                     throw makeRuntimeRejectMsg(workerScript, "ERROR: Could not find port: " + port + ". This is a bug contact the game developer");
                 }
                 return port.clear();
-            } else if (isString(port)) { //Clear text file
+            } else if (isString(port)) { // Clear text file
                 var fn = port;
                 var server = getServer(workerScript.serverIp);
                 if (server == null) {
@@ -2391,7 +2405,7 @@ function NetscriptFunctions(workerScript) {
                 workerScript.scriptRef.log("getHackTime() failed. Invalid IP or hostname passed in: " + ip);
                 throw makeRuntimeRejectMsg(workerScript, "getHackTime() failed. Invalid IP or hostname passed in: " + ip);
             }
-            return calculateHackingTime(server, hack, int); //Returns seconds
+            return calculateHackingTime(server, hack, int); // Returns seconds
         },
         getGrowTime : function(ip, hack, int) {
             if (workerScript.checkingRam) {
@@ -2403,7 +2417,7 @@ function NetscriptFunctions(workerScript) {
                 workerScript.scriptRef.log("getGrowTime() failed. Invalid IP or hostname passed in: " + ip);
                 throw makeRuntimeRejectMsg(workerScript, "getGrowTime() failed. Invalid IP or hostname passed in: " + ip);
             }
-            return calculateGrowTime(server, hack, int); //Returns seconds
+            return calculateGrowTime(server, hack, int); // Returns seconds
         },
         getWeakenTime : function(ip, hack, int) {
             if (workerScript.checkingRam) {
@@ -2415,7 +2429,7 @@ function NetscriptFunctions(workerScript) {
                 workerScript.scriptRef.log("getWeakenTime() failed. Invalid IP or hostname passed in: " + ip);
                 throw makeRuntimeRejectMsg(workerScript, "getWeakenTime() failed. Invalid IP or hostname passed in: " + ip);
             }
-            return calculateWeakenTime(server, hack, int); //Returns seconds
+            return calculateWeakenTime(server, hack, int); // Returns seconds
         },
         getScriptIncome : function(scriptname, ip) {
             if (workerScript.checkingRam) {
@@ -2423,13 +2437,13 @@ function NetscriptFunctions(workerScript) {
             }
             updateDynamicRam("getScriptIncome", CONSTANTS.ScriptGetScriptRamCost);
             if (arguments.length === 0) {
-                //Get total script income
+                // Get total script income
                 var res = [];
                 res.push(updateActiveScriptsItems());
                 res.push(Player.scriptProdSinceLastAug / (Player.playtimeSinceLastAug/1000));
                 return res;
             } else {
-                //Get income for a particular script
+                // Get income for a particular script
                 var server = getServer(ip);
                 if (server == null) {
                     workerScript.scriptRef.log("getScriptIncome() failed. Invalid IP or hostnamed passed in: " + ip);
@@ -2459,7 +2473,7 @@ function NetscriptFunctions(workerScript) {
                 }
                 return total;
             } else {
-                //Get income for a particular script
+                // Get income for a particular script
                 var server = getServer(ip);
                 if (server == null) {
                     workerScript.scriptRef.log("getScriptExpGain() failed. Invalid IP or hostnamed passed in: " + ip);
@@ -3174,7 +3188,7 @@ function NetscriptFunctions(workerScript) {
                     workerScript.scriptRef.log("ERROR: Invalid job passed into applyToCompany: " + field + ". applyToCompany() failed");
                     return false;
             }
-            //The Player object's applyForJob function can return string with special error messages
+            // The Player object's applyForJob function can return string with special error messages
             if (isString(res)) {
                 workerScript.scriptRef.log(res);
                 return false;
@@ -3266,7 +3280,7 @@ function NetscriptFunctions(workerScript) {
                     return false;
                 }
             }
-            //Make a copy of Player.factionInvitations
+            // Make a copy of Player.factionInvitations
             return Player.factionInvitations.slice();
         },
         joinFaction : function(name) {
@@ -3295,7 +3309,7 @@ function NetscriptFunctions(workerScript) {
             var fac = Factions[name];
             joinFaction(fac);
 
-            //Update Faction Invitation list to account for joined + banned factions
+            // Update Faction Invitation list to account for joined + banned factions
             for (var i = 0; i < Player.factionInvitations.length; ++i) {
                 if (Player.factionInvitations[i] == name || Factions[Player.factionInvitations[i]].isBanned) {
                     Player.factionInvitations.splice(i, 1);
@@ -3351,7 +3365,7 @@ function NetscriptFunctions(workerScript) {
             }
 
             var fac = Factions[name];
-            //Arrays listing factions that allow each time of work
+            // Arrays listing factions that allow each time of work
             var hackAvailable = ["Illuminati", "Daedalus", "The Covenant", "ECorp", "MegaCorp",
                                  "Bachman & Associates", "Blade Industries", "NWO", "Clarke Incorporated",
                                  "OmniTek Incorporated", "Four Sigma", "KuaiGong International",
@@ -4662,12 +4676,19 @@ function NetscriptFunctions(workerScript) {
                 }
                 updateDynamicRam("joinBladeburnerDivision", CONSTANTS.ScriptBladeburnerApiBaseRamCost);
                 if ((Player.bitNodeN === 7 || hasBladeburner2079SF)) {
+                    if (Player.bitNodeN === 8) { return false; }
                     if (Player.bladeburner instanceof Bladeburner) {
-                        return true; //Already member
+                        return true; // Already member
                     } else if (Player.strength >= 100 && Player.defense >= 100 &&
                                Player.dexterity >= 100 && Player.agility >= 100) {
                         Player.bladeburner = new Bladeburner({new:true});
                         workerScript.log("You have been accepted into the Bladeburner division");
+
+                        const worldHeader = document.getElementById("world-menu-header");
+                        if (worldHeader instanceof HTMLElement) {
+                            worldHeader.click(); worldHeader.click();
+                        }
+
                         return true;
                     } else {
                         workerScript.log("You do not meet the requirements for joining the Bladeburner division");
@@ -5058,7 +5079,7 @@ function NetscriptFunctions(workerScript) {
                             workChaExpGain:  sl.earningsForTask.cha,
                             workMoneyGain:   sl.earningsForTask.money,
                     },
-                    workRepGain:     sl.getRepGain(),
+                    workRepGain:     sl.getRepGain(Player),
                 }
             },
             getSleeveAugmentations : function(sleeveNumber=0) {
@@ -5125,9 +5146,17 @@ function NetscriptFunctions(workerScript) {
 
                 return Player.sleeves[sleeveNumber].tryBuyAugmentation(Player, aug);
             }
-        } // End sleeve
-    } //End return
-} //End NetscriptFunction()
+        }, // End sleeve
+        heart: {
+            // Easter egg function
+            break : function() {
+                if (workerScript.checkingRam) { return 0; }
+
+                return Player.karma;
+            }
+        }
+    } // End return
+} // End NetscriptFunction()
 
 export {NetscriptFunctions, initSingularitySFFlags, hasSingularitySF, hasBn11SF,
         hasWallStreetSF, wallStreetSFLvl, hasCorporationSF, hasAISF, hasBladeburnerSF};

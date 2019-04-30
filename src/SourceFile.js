@@ -1,8 +1,7 @@
 import { Player } from "./Player";
 import { BitNodes } from "./BitNode/BitNode";
 
-/* SourceFile.js */
-//Each SourceFile corresponds to a BitNode with the same number
+// Each SourceFile corresponds to a BitNode with the same number
 function SourceFile(number, info="") {
     var bitnodeKey = "BitNode" + number;
     var bitnode = BitNodes[bitnodeKey];
@@ -25,8 +24,9 @@ function initSourceFiles() {
                                       "Level 1: 16%<br>" +
                                       "Level 2: 24%<br>" +
                                       "Level 3: 28%");
-    SourceFiles["SourceFile2"] = new SourceFile(2, "This Source-File increases the player's crime success rate, crime money, and charisma " +
-                                      "multipliers by:<br><br>" +
+    SourceFiles["SourceFile2"] = new SourceFile(2, "This Source-File allows you to form gangs in other BitNodes " +
+                                      "once your karma decreases to a certain value. It also increases the player's " +
+                                      "crime success rate, crime money, and charisma multipliers by:<br><br>" +
                                       "Level 1: 24%<br>" +
                                       "Level 2: 36%<br>" +
                                       "Level 3: 42%");
@@ -80,7 +80,7 @@ function initSourceFiles() {
                                                      "In other words, level N of this Source-File will result in a multiplier of 1.01^N (or 0.99^N for multipliers that decrease)");
 }
 
-//Takes in a PlayerOwnedSourceFile as the "srcFile" argument
+// Takes in a PlayerOwnedSourceFile as the "srcFile" argument
 function applySourceFile(srcFile) {
     var srcFileKey = "SourceFile" + srcFile.n;
     var sourceFileObject = SourceFiles[srcFileKey];

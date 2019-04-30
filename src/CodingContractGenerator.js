@@ -1,12 +1,16 @@
-import { CodingContract,
-         CodingContractRewardType,
-         CodingContractTypes }          from "./CodingContracts";
-import { Factions }                     from "./Faction/Factions";
-import { Player }                       from "./Player";
-import { AllServers }                   from "./Server/AllServers";
-import { GetServerByHostname }          from "./Server/ServerHelpers";
+import {
+    CodingContract,
+    CodingContractRewardType,
+    CodingContractTypes
+} from "./CodingContracts";
+import { Factions } from "./Faction/Factions";
+import { Player } from "./Player";
+import { AllServers } from "./Server/AllServers";
+import { GetServerByHostname } from "./Server/ServerHelpers";
+import { SpecialServerNames } from "./Server/SpecialServerIps";
 
-import { getRandomInt }                 from "../utils/helpers/getRandomInt";
+import { getRandomInt } from "../utils/helpers/getRandomInt";
+
 
 export function generateRandomContract() {
     // First select a random problem type
@@ -127,14 +131,15 @@ function getRandomReward() {
     });
 
     switch (reward.type) {
-        case CodingContractRewardType.FactionReputation:
+        case CodingContractRewardType.FactionReputation: {
             // Get a random faction that player is a part of. That
             // faction must allow hacking contracts
             var numFactions = factionsThatAllowHacking.length;
             var randFaction = factionsThatAllowHacking[getRandomInt(0, numFactions - 1)];
             reward.name = randFaction;
             break;
-        case CodingContractRewardType.CompanyReputation:
+        }
+        case CodingContractRewardType.CompanyReputation: {
             const allJobs = Object.keys(Player.jobs);
             if (allJobs.length > 0) {
                 reward.name = allJobs[getRandomInt(0, allJobs.length - 1)];
@@ -142,6 +147,7 @@ function getRandomReward() {
                 reward.type = CodingContractRewardType.Money;
             }
             break;
+        }
         default:
             break;
     }
@@ -157,7 +163,9 @@ function getRandomServer() {
     // An infinite loop shouldn't ever happen, but to be safe we'll use
     // a for loop with a limited number of tries
     for (let i = 0; i < 200; ++i) {
-        if (randServer.purchasedByPlayer === false) { break; }
+        if (!randServer.purchasedByPlayer && randServer.hostname !== SpecialServerNames.WorldDaemon) {
+            break;
+        }
         randIndex = getRandomInt(0, servers.length - 1);
         randServer = AllServers[servers[randIndex]];
     }

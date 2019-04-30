@@ -3,6 +3,42 @@
 Changelog
 =========
 
+v0.46.3 - 4/20/2019
+-------------------
+* Added a new Augmentation: The Shadow's Simulacrum
+* Improved tab autocompletion feature in Terminal so that it works better with directories
+* Bug Fix: Tech vendor location UI now properly refreshed when purchasing a TOR router
+* Bug Fix: Fixed UI issue with faction donations
+* Bug Fix: The money statistics & breakdown should now properly track money earned from Hacknet Server (hashes -> money)
+* Bug Fix: Fixed issue with changing input in 'Minimum Path Sum in a Triangle' coding contract problem
+* Fixed several typos in various places
+
+v0.46.2 - 4/14/2019
+-------------------
+* Source-File 2 now allows you to form gangs in other BitNodes when your karma reaches a very large negative value
+    * (Karma is a hidden stat and is lowered by committing crimes)
+
+* Gang changes:
+    * Bug Fix: Gangs can no longer clash with themselve
+    * Bug Fix: Winning against another gang should properly reduce their power
+
+* Bug Fix: Terminal 'wget' command now works properly
+* Bug Fix: Hacknet Server Hash upgrades now properly reset upon installing Augs/switching BitNodes
+* Bug Fix: Fixed button for creating Corporations
+
+v0.46.1 - 4/12/2019
+-------------------
+* Added a very rudimentary directory system to the Terminal
+    * Details here: https://bitburner.readthedocs.io/en/latest/basicgameplay/terminal.html#filesystem-directories
+
+* Added numHashes(), hashCost(), and spendHashes() functions to the Netscript Hacknet Node API
+* 'Generate Coding Contract' hash upgrade is now more expensive
+* 'Generate Coding Contract' hash upgrade now generates the contract randomly on the server, rather than on home computer
+* The cost of selling hashes for money no longer increases each time
+* Selling hashes for money now costs 4 hashes (in exchange for $1m)
+* Bug Fix: Hacknet Node earnings should work properly when game is inactive/offline
+* Bug Fix: Duplicate Sleeve augmentations are now properly reset when switching to a new BitNode
+
 v0.46.0 - 4/3/2019
 ------------------
 * Added BitNode-9: Hacktocracy
