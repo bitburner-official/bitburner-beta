@@ -49,11 +49,10 @@ import { LocationRoot } from "./Locations/ui/Root";
 import { checkForMessagesToSend, initMessages } from "./Message/MessageHelpers";
 import { inMission, currMission } from "./Missions";
 import {
-    initSingularitySFFlags,
-    hasSingularitySF,
-    hasCorporationSF
-} from "./NetscriptFunctions";
-import { updateOnlineScriptTimes, runScriptsLoop } from "./NetscriptWorker";
+    loadAllRunningScripts,
+    runScriptsLoop,
+    updateOnlineScriptTimes,
+} from "./NetscriptWorker";
 import { Player } from "./Player";
 import { prestigeAugmentation, prestigeSourceFile } from "./Prestige";
 import { Programs } from "./Programs/Programs";
@@ -66,7 +65,6 @@ import { redPillFlag, hackWorldDaemon } from "./RedPill";
 import { saveObject, loadGame } from "./SaveObject";
 import {
     getCurrentEditor,
-    loadAllRunningScripts,
     scriptEditorInit,
     updateScriptEditorContent
 } from "./Script/ScriptHelpers";
@@ -121,37 +119,6 @@ import { KEY } from "../utils/helpers/keyCodes";
 
 import React from "react";
 import ReactDOM from "react-dom";
-
-
-// These should really be imported with the module that is presenting that UI, but because they very much depend on the
-// cascade order, we'll pull them all in here.
-import 'normalize.css';
-import "../css/styles.scss";
-import "../css/tooltips.scss";
-import "../css/buttons.scss";
-import "../css/mainmenu.scss";
-import "../css/characteroverview.scss";
-import "../css/terminal.scss";
-import "../css/scripteditor.scss";
-import "../css/hacknetnodes.scss";
-import "../css/menupages.scss";
-import "../css/redpill.scss";
-import "../css/stockmarket.scss";
-import "../css/workinprogress.scss";
-import "../css/popupboxes.scss";
-import "../css/gameoptions.scss";
-import "../css/interactivetutorial.scss";
-import "../css/loader.scss";
-import "../css/missions.scss";
-import "../css/companymanagement.scss";
-import "../css/bladeburner.scss";
-import "../css/gang.scss";
-import "../css/sleeves.scss";
-import "../css/resleeving.scss";
-import "../css/treant.css";
-import "../css/grid.min.css";
-import "../css/dev-menu.css";
-
 
 /**
  * Shortcuts to navigate through the game
@@ -1087,7 +1054,6 @@ const Engine = {
                 initSymbolToStockMap();
             }
             initLiterature();
-            initSingularitySFFlags();
             updateSourceFileFlags(Player);
 
             // Calculate the number of cycles have elapsed while offline
@@ -1213,7 +1179,6 @@ const Engine = {
             initAugmentations();
             initMessages();
             initLiterature();
-            initSingularitySFFlags();
 
             // Open main menu accordions for new game
             const hackingHdr      = document.getElementById("hacking-menu-header");
