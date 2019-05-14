@@ -61,7 +61,7 @@ export function purchaseHacknet() {
         }
     }
     /* END INTERACTIVE TUTORIAL */
-    
+
     const numOwned = Player.hacknetNodes.length;
     if (hasHacknetServers()) {
         const cost = getCostOfNextHacknetServer();
@@ -350,7 +350,7 @@ export function purchaseCoreUpgrade(node, levels=1) {
 
 export function purchaseCacheUpgrade(node, levels=1) {
     const sanitizedLevels = Math.round(levels);
-    const cost = node.calculateCoreUpgradeCost(sanitizedLevels);
+    const cost = node.calculateCacheUpgradeCost(sanitizedLevels);
     if (isNaN(cost) || cost <= 0 || sanitizedLevels < 0) {
         return false;
     }
@@ -426,7 +426,10 @@ function processAllHacknetServerEarnings(numCycles) {
 
     let hashes = 0;
     for (let i = 0; i < Player.hacknetNodes.length; ++i) {
-        const hserver = AllServers[Player.hacknetNodes[i]]; // hacknetNodes array only contains the IP addresses
+        // hacknetNodes array only contains the IP addresses of the servers.
+        // Also, update the hash rate before processing
+        const hserver = AllServers[Player.hacknetNodes[i]];
+        hserver.updateHashRate(Player.hacknet_node_money_mult);
         hashes += hserver.process(numCycles);
     }
 
