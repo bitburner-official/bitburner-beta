@@ -6,7 +6,7 @@
 import { IMap } from "./types";
 
 export let CONSTANTS: IMap<any> = {
-    Version:                "0.46.3",
+    Version:                "0.47.0",
 
 	/** Max level for any skill, assuming no multipliers. Determined by max numerical value in javascript for experience
      * and the skill level formula in Player.js. Note that all this means it that when experience hits MAX_INT, then
@@ -221,6 +221,19 @@ export let CONSTANTS: IMap<any> = {
 
     LatestUpdate:
     `
+    v0.47.0
+    * Stock Market changes:
+    ** Transactions no longer influence stock prices (but they still influence forecast)
+    ** Changed the way stocks behave, particularly with regard to how the stock forecast occasionally "flips"
+    ** Hacking & growing a server can potentially affect the way the corresponding stock's forecast changes
+    ** Working for a company positively affects the way the corresponding stock's forecast changes
+
+    * Scripts now start/stop instantly
+    * Improved performance when starting up many copies of a new NetscriptJS script (by Ornedan)
+    * Dialog boxes can now be closed with the ESC key (by jaguilar)
+    * NetscriptJS scripts should now be "re-compiled" if their dependencies change (by jaguilar)
+    * write() function should now properly cause NetscriptJS scripts to "re-compile" (by jaguilar)
+
     v0.47.0
     * Stock Market changes:
     ** Implemented spread. Stock's now have bid and ask prices at which transactions occur

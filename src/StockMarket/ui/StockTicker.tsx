@@ -48,6 +48,7 @@ type IProps = {
     orders: Order[];
     p: IPlayer;
     placeOrder: placeOrderFn;
+    rerenderAllTickers: () => void;
     sellStockLong: txFn;
     sellStockShort: txFn;
     stock: Stock;
@@ -57,7 +58,6 @@ type IState = {
     orderType: SelectorOrderType;
     position: PositionTypes;
     qty: string;
-    rerenderFlag: boolean;
 }
 
 export class StockTicker extends React.Component<IProps, IState> {
@@ -68,7 +68,6 @@ export class StockTicker extends React.Component<IProps, IState> {
             orderType: SelectorOrderType.Market,
             position: PositionTypes.Long,
             qty: "",
-            rerenderFlag: false,
         }
 
         this.getBuyTransactionCostText = this.getBuyTransactionCostText.bind(this);
@@ -81,7 +80,6 @@ export class StockTicker extends React.Component<IProps, IState> {
         this.handleQuantityChange = this.handleQuantityChange.bind(this);
         this.handleSellButtonClick = this.handleSellButtonClick.bind(this);
         this.handleSellAllButtonClick = this.handleSellAllButtonClick.bind(this);
-        this.rerender = this.rerender.bind(this);
     }
 
     createPlaceOrderPopupBox(yesTxt: string, popupTxt: string, yesBtnCb: (price: number) => void) {
@@ -119,11 +117,6 @@ export class StockTicker extends React.Component<IProps, IState> {
         let costTxt = `Purchasing ${numeralWrapper.formatBigNumber(qty)} shares (${this.state.position === PositionTypes.Long ? "Long" : "Short"}) ` +
                       `will cost ${numeralWrapper.formatMoney(cost)}. `;
 
-        const causesMovement = qty > stock.shareTxUntilMovement;
-        if (causesMovement) {
-            costTxt += `WARNING: Purchasing this many shares will influence the stock price`;
-        }
-
         return costTxt;
     }
 
@@ -152,11 +145,6 @@ export class StockTicker extends React.Component<IProps, IState> {
         let costTxt = `Selling ${numeralWrapper.formatBigNumber(qty)} shares (${this.state.position === PositionTypes.Long ? "Long" : "Short"}) ` +
                       `will result in a gain of ${numeralWrapper.formatMoney(cost)}. `;
 
-        const causesMovement = qty > stock.shareTxUntilMovement;
-        if (causesMovement) {
-            costTxt += `WARNING: Selling this many shares will influence the stock price`;
-        }
-
         return costTxt;
     }
 
@@ -174,7 +162,7 @@ export class StockTicker extends React.Component<IProps, IState> {
                 } else {
                     this.props.buyStockLong(this.props.stock, shares);
                 }
-                this.rerender();
+                this.props.rerenderAllTickers();
                 break;
             }
             case SelectorOrderType.Limit: {
@@ -216,7 +204,7 @@ export class StockTicker extends React.Component<IProps, IState> {
                 } else {
                     this.props.buyStockLong(stock, maxShares);
                 }
-                this.rerender();
+                this.props.rerenderAllTickers();
                 break;
             }
             default: {
@@ -297,7 +285,7 @@ export class StockTicker extends React.Component<IProps, IState> {
                 } else {
                     this.props.sellStockLong(this.props.stock, shares);
                 }
-                this.rerender();
+                this.props.rerenderAllTickers();
                 break;
             }
             case SelectorOrderType.Limit: {
@@ -335,7 +323,7 @@ export class StockTicker extends React.Component<IProps, IState> {
                 } else {
                     this.props.sellStockLong(stock, stock.playerShares);
                 }
-                this.rerender();
+                this.props.rerenderAllTickers();
                 break;
             }
             default: {
@@ -355,21 +343,9 @@ export class StockTicker extends React.Component<IProps, IState> {
         return (this.props.p.bitNodeN === 8 || (SourceFileFlags[8] >= 2));
     }
 
-    rerender(): void {
-        this.setState((prevState) => {
-            return {
-                rerenderFlag: !prevState.rerenderFlag,
-            }
-        });
-    }
-
     render() {
         // Determine if the player's intended transaction will cause a price movement
-        let causesMovement: boolean = false;
         const qty = this.getQuantity();
-        if (!isNaN(qty)) {
-            causesMovement = qty > this.props.stock.shareTxUntilMovement;
-        }
 
         return (
             <li>
@@ -408,14 +384,6 @@ export class StockTicker extends React.Component<IProps, IState> {
                             <StockTickerTxButton onClick={this.handleSellButtonClick} text={"Sell"} tooltip={this.getSellTransactionCostText()} />
                             <StockTickerTxButton onClick={this.handleBuyMaxButtonClick} text={"Buy MAX"} />
                             <StockTickerTxButton onClick={this.handleSellAllButtonClick} text={"Sell ALL"} />
-                            {
-                                causesMovement &&
-                                <p className="stock-market-price-movement-warning">
-                                    WARNING: Buying/Selling {numeralWrapper.formatBigNumber(qty)} shares will affect
-                                    the stock's price. This applies during the transaction itself as well. See Investopedia
-                                    for more details.
-                                </p>
-                            }
                             <StockTickerPositionText p={this.props.p} stock={this.props.stock} />
                             <StockTickerOrderList
                                 cancelOrder={this.props.cancelOrder}

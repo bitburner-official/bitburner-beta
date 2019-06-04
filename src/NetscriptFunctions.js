@@ -3,7 +3,6 @@ const vsprintf = require("sprintf-js").vsprintf;
 
 import { getRamCost } from "./Netscript/RamCostGenerator";
 
-import { updateActiveScriptsItems } from "./ActiveScriptsUI";
 import { Augmentation } from "./Augmentation/Augmentation";
 import { Augmentations } from "./Augmentation/Augmentations";
 import {
@@ -91,6 +90,10 @@ import {
     shortStock,
     sellShort,
 } from "./StockMarket/BuyingAndSelling";
+import {
+    influenceStockThroughServerHack,
+    influenceStockThroughServerGrow,
+} from "./StockMarket/PlayerInfluencing";
 import { Stock } from "./StockMarket/Stock";
 import {
     StockMarket,
@@ -120,11 +123,11 @@ import {
 } from "./NetscriptBladeburner";
 import * as nsGang from "./NetscriptGang";
 import {
-    workerScripts,
-    killWorkerScript,
     NetscriptPorts,
     runScriptFromScript,
 } from "./NetscriptWorker";
+import { killWorkerScript } from "./Netscript/killWorkerScript";
+import { workerScripts } from "./Netscript/WorkerScripts";
 import {
     makeRuntimeRejectMsg,
     netscriptDelay,
@@ -440,7 +443,7 @@ function NetscriptFunctions(workerScript) {
             }
             return out;
         },
-        hack : function(ip, { threads: requestedThreads } = {}){
+        hack : function(ip, { threads: requestedThreads, stock } = {}){
             updateDynamicRam("hack", getRamCost("hack"));
             if (ip === undefined) {
                 throw makeRuntimeRejectMsg(workerScript, "Hack() call has incorrect number of arguments. Takes 1 argument");
@@ -502,6 +505,9 @@ function NetscriptFunctions(workerScript) {
                         workerScript.scriptRef.log("Script SUCCESSFULLY hacked " + server.hostname + " for $" + formatNumber(moneyGained, 2) + " and " + formatNumber(expGainedOnSuccess, 4) +  " exp (t=" + threads + ")");
                     }
                     server.fortify(CONSTANTS.ServerFortifyAmount * Math.min(threads, maxThreadNeeded));
+                    if (stock) {
+                        influenceStockThroughServerHack(server, moneyGained);
+                    }
                     return Promise.resolve(moneyGained);
                 } else {
                     // Player only gains 25% exp for failure?
@@ -556,7 +562,7 @@ function NetscriptFunctions(workerScript) {
                 return Promise.resolve(true);
             });
         },
-        grow : function(ip, { threads: requestedThreads } = {}){
+        grow : function(ip, { threads: requestedThreads, stock } = {}){
             updateDynamicRam("grow", getRamCost("grow"));
             const threads = resolveNetscriptRequestedThreads(workerScript, "grow", requestedThreads);
             if (ip === undefined) {
@@ -597,6 +603,9 @@ function NetscriptFunctions(workerScript) {
                 }
                 workerScript.scriptRef.onlineExpGained += expGain;
                 Player.gainHackingExp(expGain);
+                if (stock) {
+                    influenceStockThroughServerGrow(server, moneyAfter - moneyBefore);
+                }
                 return Promise.resolve(moneyAfter/moneyBefore);
             });
         },
@@ -1144,7 +1153,7 @@ function NetscriptFunctions(workerScript) {
                     var oldScript = destServer.scripts[i];
                     oldScript.code = sourceScript.code;
                     oldScript.ramUsage = sourceScript.ramUsage;
-                    oldScript.module = "";
+                    oldScript.markUpdated();
                     return true;
                 }
             }
@@ -1537,7 +1546,7 @@ function NetscriptFunctions(workerScript) {
             const res = getSellTransactionGain(stock, shares, pos);
             if (res == null) { return 0; }
 
-            return res;
+             return res;
         },
         buyStock: function(symbol, shares) {
             updateDynamicRam("buyStock", getRamCost("buyStock"));
@@ -1948,6 +1957,7 @@ function NetscriptFunctions(workerScript) {
                     }
                     mode === "w" ? script.code = data : script.code += data;
                     script.updateRamUsage(server.scripts);
+                    script.markUpdated();
                 } else {
                     // Write to text file
                     let txtFile = getTextFile(fn, server);
