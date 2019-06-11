@@ -9,10 +9,10 @@ import { Company } from "../Company/Company";
 import { Server } from "../Server/Server";
 
 // Change in second-order forecast due to hacks/grows
-const forecastForecastChangeFromHack = 0.1;
+export const forecastForecastChangeFromHack = 0.1;
 
 // Change in second-order forecast due to company work
-const forecastForecastChangeFromCompanyWork = 0.001;
+export const forecastForecastChangeFromCompanyWork = 0.001;
 
 /**
  * Potentially decreases a stock's second-order forecast when its corresponding
@@ -71,7 +71,7 @@ export function influenceStockThroughCompanyWork(company: Company, performanceMu
     }
     if (!(stock instanceof Stock)) { return; }
 
-    if (Math.random() < 0.001 * cyclesOfWork) {
+    if (Math.random() < 0.002 * cyclesOfWork) {
         const change = forecastForecastChangeFromCompanyWork * performanceMult;
         stock.changeForecastForecast(stock.otlkMagForecast + change);
     }

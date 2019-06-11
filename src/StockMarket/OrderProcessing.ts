@@ -22,7 +22,7 @@ import { numeralWrapper } from "../ui/numeralFormat";
 
 import { dialogBoxCreate } from "../../utils/DialogBox";
 
-interface IProcessOrderRefs {
+export interface IProcessOrderRefs {
     rerenderFn: () => void;
     stockMarket: IStockMarket;
     symbolToStockMap: IMap<Stock>;
@@ -49,7 +49,7 @@ export function processOrders(stock: Stock, orderType: OrderTypes, posType: Posi
     }
     let stockOrders = orderBook[stock.symbol];
     if (stockOrders == null || !(stockOrders.constructor === Array)) {
-        console.error(`Invalid Order book for ${stock.symbol} in processOrders()`);
+        console.error(`Invalid Order book for ${stock.symbol} in processOrders(): ${stockOrders}`);
         stockOrders = [];
         return;
     }
@@ -96,7 +96,7 @@ export function processOrders(stock: Stock, orderType: OrderTypes, posType: Posi
 /**
  * Execute a Stop or Limit Order.
  * @param {Order} order - Order being executed
- * @param {IStockMarket} stockMarket - Reference to StockMarket object
+ * @param {IProcessOrderRefs} refs - References to objects/functions that are required for this function
  */
 function executeOrder(order: Order, refs: IProcessOrderRefs) {
     const stock = refs.symbolToStockMap[order.stockSymbol];
@@ -160,9 +160,6 @@ function executeOrder(order: Order, refs: IProcessOrderRefs) {
         if (isBuy) {
             dialogBoxCreate(`Failed to execute ${order.type} for ${stock.symbol} @ ${numeralWrapper.formatMoney(order.price)} (${pos}). ` +
                             `This is most likely because you do not have enough money or the order would exceed the stock's maximum number of shares`);
-        } else {
-            dialogBoxCreate(`Failed to execute ${order.type} for ${stock.symbol} @ ${numeralWrapper.formatMoney(order.price)} (${pos}). ` +
-                            `This may be a bug, please report to game developer with details.`);
         }
     }
 }
