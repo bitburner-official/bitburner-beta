@@ -2,6 +2,7 @@ const sprintf = require("sprintf-js").sprintf;
 const vsprintf = require("sprintf-js").vsprintf;
 
 import { getRamCost } from "./Netscript/RamCostGenerator";
+import { WorkerScriptStartStopEventEmitter } from "./Netscript/WorkerScriptStartStopEventEmitter";
 
 import { Augmentation } from "./Augmentation/Augmentation";
 import { Augmentations } from "./Augmentation/Augmentations";
@@ -983,18 +984,20 @@ function NetscriptFunctions(workerScript) {
             if (ip === undefined) {
                 throw makeRuntimeRejectMsg(workerScript, "killall() call has incorrect number of arguments. Takes 1 argument");
             }
-            var server = getServer(ip);
+            const server = getServer(ip);
             if (server == null) {
                 workerScript.scriptRef.log("killall() failed. Invalid IP or hostname passed in: " + ip);
                 throw makeRuntimeRejectMsg(workerScript, "killall() failed. Invalid IP or hostname passed in: " + ip);
             }
-            var scriptsRunning = (server.runningScripts.length > 0);
-            for (var i = server.runningScripts.length-1; i >= 0; --i) {
-                killWorkerScript(server.runningScripts[i], server.ip);
+            const scriptsRunning = (server.runningScripts.length > 0);
+            for (let i = server.runningScripts.length-1; i >= 0; --i) {
+                killWorkerScript(server.runningScripts[i], server.ip, false);
             }
+            WorkerScriptStartStopEventEmitter.emitEvent();
             if (workerScript.disableLogs.ALL == null && workerScript.disableLogs.killall == null) {
                 workerScript.scriptRef.log("killall(): Killing all scripts on " + server.hostname + ". May take a few minutes for the scripts to die");
             }
+
             return scriptsRunning;
         },
         exit : function() {
@@ -2178,7 +2181,7 @@ function NetscriptFunctions(workerScript) {
 
                 // First element is total income of all currently running scripts
                 let total = 0;
-                for (const script of workerScripts) {
+                for (const script of workerScripts.values()) {
                     total += (script.scriptRef.onlineMoneyMade / script.scriptRef.onlineRunningTime);
                 }
                 res.push(total);
@@ -2209,8 +2212,8 @@ function NetscriptFunctions(workerScript) {
             updateDynamicRam("getScriptExpGain", getRamCost("getScriptExpGain"));
             if (arguments.length === 0) {
                 var total = 0;
-                for (var i = 0; i < workerScripts.length; ++i) {
-                    total += (workerScripts[i].scriptRef.onlineExpGained / workerScripts[i].scriptRef.onlineRunningTime);
+                for (const ws of workerScripts.values()) {
+                    total += (ws.scriptRef.onlineExpGained / ws.scriptRef.onlineRunningTime);
                 }
                 return total;
             } else {

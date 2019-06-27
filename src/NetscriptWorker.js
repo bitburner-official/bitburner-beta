@@ -46,11 +46,12 @@ for (var i = 0; i < CONSTANTS.NumNetscriptPorts; ++i) {
 }
 
 export function prestigeWorkerScripts() {
-    for (var i = 0; i < workerScripts.length; ++i) {
-        // TODO Signal event emitter
-        workerScripts[i].env.stopFlag = true;
+    for (const ws of workerScripts.values()) {
+        ws.env.stopFlag = true;
     }
-    workerScripts.length = 0;
+
+    WorkerScriptStartStopEventEmitter.emitEvent();
+    workerScripts.clear();
 }
 
 // JS script promises need a little massaging to have the same guarantees as netscript
@@ -408,6 +409,42 @@ function processNetscript1Imports(code, workerScript) {
 }
 
 /**
+ * Find and return the next availble PID for a script
+ */
+let pidCounter = 1;
+function generateNextPid() {
+    let tempCounter = pidCounter;
+
+    // Cap the number of search iterations at some arbitrary value to avoid
+    // infinite loops. We'll assume that players wont have 1mil+ running scripts
+    let found = false;
+    for (let i = 0; i < 1e6;) {
+        if (!workerScripts.has(tempCounter + i)) {
+            found = true;
+            tempCounter = tempCounter + i;
+            break;
+        }
+
+        if (i === Number.MAX_SAFE_INTEGER - 1) {
+            i = 1;
+        } else {
+            ++i;
+        }
+    }
+
+    if (found) {
+        pidCounter = tempCounter + 1;
+        if (pidCounter >= Number.MAX_SAFE_INTEGER) {
+            pidCounter = 1;
+        }
+
+        return tempCounter;
+    } else {
+        return -1;
+    }
+}
+
+/**
  * Start a script
  *
  * Given a RunningScript object, constructs a corresponding WorkerScript,
@@ -438,8 +475,18 @@ export function addWorkerScript(runningScriptObj, server) {
     }
 	server.ramUsed = roundToTwo(server.ramUsed + ramUsage);
 
-	// Create the WorkerScript
-	const s = new WorkerScript(runningScriptObj, NetscriptFunctions);
+    // Get the pid
+    const pid = generateNextPid();
+    if (pid === -1) {
+        throw new Error(
+            `Failed to start script because could not find available PID. This is most ` +
+            `because you have too many scripts running.`
+        );
+    }
+
+	// Create the WorkerScript. NOTE: WorkerScript ctor will set the underlying
+    // RunningScript's PID as well
+	const s = new WorkerScript(runningScriptObj, pid, NetscriptFunctions);
 	s.ramUsage 	= ramUsage;
 
     // Start the script's execution
@@ -502,7 +549,7 @@ export function addWorkerScript(runningScriptObj, server) {
     });
 
     // Add the WorkerScript to the global pool
-    workerScripts.push(s);
+    workerScripts.set(pid, s);
     WorkerScriptStartStopEventEmitter.emitEvent();
 	return;
 }
@@ -512,9 +559,9 @@ export function addWorkerScript(runningScriptObj, server) {
  */
 export function updateOnlineScriptTimes(numCycles = 1) {
 	var time = (numCycles * Engine._idleSpeed) / 1000; //seconds
-	for (var i = 0; i < workerScripts.length; ++i) {
-		workerScripts[i].scriptRef.onlineRunningTime += time;
-	}
+    for (const ws of workerScripts.values()) {
+        ws.scriptRef.onlineRunningTime += time;
+    }
 }
 
 /**
