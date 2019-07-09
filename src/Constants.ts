@@ -221,18 +221,19 @@ export let CONSTANTS: IMap<any> = {
 
     LatestUpdate:
     `
-    v0.47.1
-    * Stock Market changes:
-    ** Transactions no longer influence stock prices (but they still influence forecast)
-    ** Changed the way stocks behave, particularly with regard to how the stock forecast occasionally "flips"
-    ** Hacking & growing a server can potentially affect the way the corresponding stock's forecast changes
-    ** Working for a company positively affects the way the corresponding stock's forecast changes
+    v0.47.2
+    -------
 
-    * Scripts now start/stop instantly
-    * Improved performance when starting up many copies of a new NetscriptJS script (by Ornedan)
-    * Improved performance when killing scripts
-    * Dialog boxes can now be closed with the ESC key (by jaguilar)
-    * NetscriptJS scripts should now be "re-compiled" if their dependencies change (by jaguilar)
-    * write() function should now properly cause NetscriptJS scripts to "re-compile" (by jaguilar)
+    Netscript Changes
+    * Added tail() Netscript function
+    * hacknet.getNodeStats() function now returns an additional property for Hacknet Servers: hashCapacity
+    * Bug fix: workForFaction() function now properly accounts for disabled logs
+    * When writing to a file, the write() function now casts the data being written to a string (using String())
+    * BitNode-selection page now shows what Source-File level you have for each BitNode
+
+    Misc Changes
+    * Added 'Solarized Dark' theme to CodeMirror editor
+    * After Infiltration, you will now return to the company page rather than the city page
+    * Bug fix: Stock Market UI should no longer crash for certain locale settings
     `
 }

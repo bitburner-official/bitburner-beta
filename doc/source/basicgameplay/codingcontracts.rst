@@ -204,8 +204,8 @@ The list contains the name of (i.e. the value returned by
 |                                    | | the string, the result should be an array with only an empty string.                   |
 |                                    | |                                                                                        |
 |                                    | | Examples:                                                                              |
-|                                    | |  ()())() -> ["()()()", "(())()"]                                                       |
-|                                    | |  (a)())() -> ["(a)()()", "(a())()"]                                                    |
+|                                    | |  ()())() -> [()()(), (())()]                                                       |
+|                                    | |  (a)())() -> [(a)()(), (a())()]                                                    |
 |                                    | |  )( -> [""]                                                                            |
 +------------------------------------+------------------------------------------------------------------------------------------+
 | Find All Valid Math Expressions    | | You are given a string which contains only digits between 0 and 9 as well as a target  |
@@ -214,10 +214,12 @@ The list contains the name of (i.e. the value returned by
 |                                    | |                                                                                        |
 |                                    | | The answer should be provided as an array of strings containing the valid expressions. |
 |                                    | |                                                                                        |
+|                                    | | NOTE: Numbers in an expression cannot have leading 0's                                 |
+|                                    | |                                                                                        |
 |                                    | | Examples:                                                                              |
 |                                    | |  Input: digits = "123", target = 6                                                     |
-|                                    | |  Output: ["1+2+3", "1*2*3"]                                                            |
+|                                    | |  Output: [1+2+3, 1*2*3]                                                            |
 |                                    | |                                                                                        |
 |                                    | |  Input: digits = "105", target = 5                                                     |
-|                                    | |  Output: ["1*0+5", "10-5"]                                                             |
+|                                    | |  Output: [1*0+5, 10-5]                                                             |
 +------------------------------------+------------------------------------------------------------------------------------------+
