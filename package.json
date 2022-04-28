@@ -13,7 +13,7 @@
     "acorn-walk": "^6.2.0",
     "ajv": "^5.1.5",
     "ajv-keywords": "^2.0.0",
-    "async": "^2.6.1",
+    "async": "^2.6.4",
     "autosize": "^4.0.2",
     "brace": "^0.11.1",
     "codemirror": "^5.43.0",
