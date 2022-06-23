@@ -60,7 +60,7 @@
     "i18n-webpack-plugin": "^1.0.0",
     "istanbul": "^0.4.5",
     "js-beautify": "^1.5.10",
-    "jsdom": "^15.0.0",
+    "jsdom": "^16.5.0",
     "jsdom-global": "^3.0.2",
     "json5": "^1.0.1",
     "less": "^3.9.0",
