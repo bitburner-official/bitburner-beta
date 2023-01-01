@@ -62,7 +62,7 @@
     "js-beautify": "^1.5.10",
     "jsdom": "^15.0.0",
     "jsdom-global": "^3.0.2",
-    "json5": "^1.0.1",
+    "json5": "^2.2.2",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.10",
